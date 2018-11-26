@@ -5,7 +5,7 @@
  *      Author: michael
  *
  *  !!! IOT version with nRF module !!!
- * 
+ *
  * We will have 4 or 5 fixed glowing patterns as wavetable in flash memory
  * 		One is about 4 or 5 s long and rather dim and continous
  *		One is < 1 s long and short but intense (but less likely to be played)
@@ -73,8 +73,6 @@
 //--------------------------------------------------
 volatile uint8_t flags = 0;
 uint16_t vCap=0, vSolar=0, temperature=0, wdtCountSinceManual=0;
-
-
 
 void init(void) {
 //--------------------------------------------------
