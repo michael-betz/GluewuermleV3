@@ -3,28 +3,10 @@
  *
  *  Created on: Apr 14, 2014
  *      Author: michael
+ *
+ * !!! Wedding present version with 12 LEDs and no nRF module !!!
  * 
- * We will have 4 or 5 fixed glowing patterns as wavetable in flash memory
- * 		One is about 4 or 5 s long and rather dim and continous
- *		One is < 1 s long and short but intense (but less likely to be played)
- * WDT measures light conditions and battery voltage every 8 seconds 	-- in onWDT()
- *	--> If dark and full, switch WDT to 0.5 s interrupts
- * If less than 4 Blinky sequences are in progress:
- * 		There is a certain change that WDT starts a new Blinky sequence -- in onWDT()
- * Blinky
- * 	- int8_t pwmChannel					//Set to a random and FREE LED channel, -1 = inactive Blinky slot
- *  - uint8_t *glowingPatternPointer	//Set to a random pattern with preference for more dim patterns
- *  - uint8_t samplesLeftInPattern		//How many samples left to show in this pattern
- *  - uint8_t blinkySpeed				//Delay between samples, set to a random value with reasonable limits
- * Blinky is updated and shown on the LEDs by setting curPWMvalues[]	-- in onNewFrame()
- * 		if samplesLeftInPattern==0:  pwmChannel=-1   --> Blinky slot is inactive
- *
- * Things to do
- * --------------
- * All pwm values are iterated during every wakeup in the PWM routine which is rather inefficient
- * (even if the OCR register is used for precise wakeups)
- *
- * Better: 8-10 Wakeups per PWM cycle, arranged in a 2^N way
+ * PWM works like this: 8-12 Wakeups per PWM cycle, arranged in a 2^N way
  *
  * Each wakeup uses precalculated port settings which are output from ram to the port pins
  * For 10 bit PWM we have the arrays uint8_t pwmPrecalcPortB[10], pwmPrecalcPortC[10], pwmPrecalcPortD[10]

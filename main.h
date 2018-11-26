@@ -16,7 +16,8 @@
 // ADC, voltage measurement
 #define VCAPDIVH				560.0		//[kOhm]
 #define VCAPDIVL				160.0		//[kOhm]
-#define	VCAP_CONV_FACT_MV		(uint16_t)( 10000.0 / 1023 * 1.1 * ( VCAPDIVL + VCAPDIVH ) / VCAPDIVL )	//to get [10*mV] from the ADC value
+//#define	VCAP_CONV_FACT_MV		(uint16_t)( 10000.0 / 1023 * 1.1 * ( VCAPDIVL + VCAPDIVH ) / VCAPDIVL )	//to get [10*mV] from the ADC value
+#define	VCAP_CONV_FACT_MV		47			//Fits better for Glueh4
 #define WDT_N_WK_ADC_LBATT		113			//Only measure voltage every 113 * 8 = 15 min if battery is down
 #define ADC_MUX_VCAP			0x07
 #define ADC_MUX_SOLAR			0x06
