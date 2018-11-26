@@ -13,58 +13,67 @@
 #include <util/delay.h>
 #include <avr/wdt.h>
 #include "main.h"
-#include "glowPatterns.h"
 #include "pulseCode.h"
+#include "glowPatterns.h"
 #include "lfsr32.h"
 #include "main.h"
 #include "rprintf.h"
 #include "myWaves.h"
 
+int16_t g_maximumCoffeeLevel = 100;
+
 oneBug_t bugs[ NLEDS ];								//Every bug controls one LED channel
 #define LAST_BUG_ADR (&bugs[NLEDS-1])
+uint16_t curPWMvalues[ MAX_ELEMENTS ];				//Cache only
+uint16_t ticksSinceBlinking=0x0000;					//in 8 s intervals
+fullScreenFlashMode_t currentFSFlashMode = RAMP_UP;
 
 void houseKeepingWhileGlowing(){
-	static uint16_t ticksSinceBlinking=0x0000;	//in 8 s intervals
-	uint8_t temp;
-	int32_t sum, fireflyCoffeeLevel;
-	oneBug_t *bug;
-//  -----------------------------------------------------------
-//   Update the firefly activity by setting fireflySleepieness
-//  -----------------------------------------------------------
-//  fireflyCoffeeLevel = 0 (not active at all) ... 200 (very active)
-	fireflyCoffeeLevel  = ((int32_t)( vCap - MINIMUM_VOLTAGE )) * MAXIMUM_COFFEE_LEVEL;	//temp2 = 0 ... (MAXIMUM_VOLTAGE-MINIMUM_VOLTAGE) * MAXIMUM_COFFEE_LEVEL
-	fireflyCoffeeLevel /= ( MAXIMUM_VOLTAGE - MINIMUM_VOLTAGE );		//temp2 = 0 .. MAXIMUM_COFFEE_LEVEL
-	fireflyCoffeeLevel -= ticksSinceBlinking/8;							//1 hour = 450 ticks = 56 penalty points
-	if( fireflyCoffeeLevel > MAXIMUM_COFFEE_LEVEL ){
-		fireflyCoffeeLevel = MAXIMUM_COFFEE_LEVEL;
-	}
-	if( fireflyCoffeeLevel < 1 ){
-		fireflyCoffeeLevel = 1;
-	}
+	uint16_t coffeeLevel;
+	int32_t temp_32;
 
+	oneBug_t *bug;
 	if( currentState == STATE_GLOW_GLUEH ){
+	//  -----------------------------------------------------------
+	//   Update the firefly activity by setting fireflySleepieness
+	//  -----------------------------------------------------------
+	//  fireflyCoffeeLevel = 0 (not active at all) ... 200 (very active)
+		temp_32  = ((int32_t)( vCap - MINIMUM_VOLTAGE )) * g_maximumCoffeeLevel;	//temp2 = 0 ... (MAXIMUM_VOLTAGE-MINIMUM_VOLTAGE) * MAXIMUM_COFFEE_LEVEL
+		temp_32 /= ( MAXIMUM_VOLTAGE - MINIMUM_VOLTAGE );		//temp2 = 0 .. MAXIMUM_COFFEE_LEVEL
+		temp_32 -= ticksSinceBlinking/8;						//1 hour = 450 ticks = 56 penalty points
+		if( temp_32 > g_maximumCoffeeLevel ){
+			temp_32 = g_maximumCoffeeLevel;
+		}
+		if( temp_32 < 1 ){
+			temp_32 = 1;
+		}
+		coffeeLevel = temp_32;
+//#if DEBUG_LEVEL > 0
+//		sum=0;
+//		rprintf("eng[");
+//		for( temp=0; temp<NLEDS; temp++){
+//			rprintf(" %5d", bugs[temp].availableEnergy);
+//			sum += bugs[temp].availableEnergy;
+//		}
+//		rprintf( "] S=%5ld, cof=%3d\n",sum,coffeeLevel);
+//#endif
 //  -----------------------------------------------------------
 //   Fed the bugs with "fireflyCoffeeLevel" energy every 8 seconds
 //	 The value is spread out amongst all 12 channels
 //  -----------------------------------------------------------
 		bug = &bugs[ lfsr(4)%NLEDS ];
-		while( fireflyCoffeeLevel > 0 ){
-			fireflyCoffeeLevel /= 2;
-			bug->availableEnergy += fireflyCoffeeLevel;
-			bug++;
-			if( bug>LAST_BUG_ADR ){
-				bug = bugs;
+		if( coffeeLevel <= 1 ){
+			bug->availableEnergy += coffeeLevel;
+		} else {
+			while( coffeeLevel > 0 ){
+				coffeeLevel /= 2;
+				bug->availableEnergy += coffeeLevel;
+				bug++;
+				if( bug>LAST_BUG_ADR ){
+					bug = bugs;
+				}
 			}
 		}
-#if DEBUG_LEVEL > 0
-		sum=0;
-		rprintf("eng[");
-		for( temp=0; temp<NLEDS; temp++){
-			rprintf(" %5d", bugs[temp].availableEnergy);
-			sum += bugs[temp].availableEnergy;
-		}
-		rprintf( "] S=%5ld, cof=%3d\n",sum,fireflyCoffeeLevel);
-#endif
 	}
 
 	ticksSinceBlinking++;
@@ -96,7 +105,7 @@ oneBug_t *startSeqGlueh( uint8_t bugId ){
 		bug->remainingSamples = tmpWave.length;
 		bug->b_state = BUG_ACTIVE_SAMPLES;
 		enCost = tmpWave.energyCost;
-		rprintf( "bug[%2d]: ACTIVE, en = %d, cost = %d,  pBonus = %d\n", bugId, avEnergy, enCost, propBonus );
+//		rprintf( "bug[%2d]: ACTIVE, en = %d, cost = %d,  pBonus = %d\n", bugId, avEnergy, enCost, propBonus );
 //		When a wave gets started, energy gets shifted around!
 //		if bug[0] was blinking with en:  bug[0]-=en, bug[1]+=en/2, bug[3]-=en/4, bug[4]-=en/8, etc.
 //		overall energy billiance is reduced by en
@@ -118,7 +127,7 @@ oneBug_t *startSeqGlueh( uint8_t bugId ){
 		}
 	} else {						//Let the bug sleep for nRand samples otherwise
 		bug->b_state = BUG_INACTIVE_PENALTY;
-		bug->remainingSamples = lfsr( 8 ); // 0 ... 8.5 seconds waiting time until next try
+		bug->remainingSamples = lfsr( 8 ); // 0 ... 8 seconds waiting time until next try
 //		rprintf( "bug[%2d]: PENALTY for %d samples, pBonus = %d\n", bugId, bug->remainingSamples, propBonus );
 	}
 	return bug;
@@ -178,7 +187,6 @@ void newFrameFullscreen( int8_t newState ){
 	uint16_t *pwmValue_p, temp2;
 	static uint16_t framesInThisMode=0;
 	static uint8_t tempFrameCounter=0;
-	static fullScreenFlashMode_t currentFSFlashMode = RAMP_UP;
 	if( newState < 0 ){								//Render a new frame
 		switch( currentFSFlashMode ){
 			default:
@@ -201,7 +209,7 @@ void newFrameFullscreen( int8_t newState ){
 				break;
 			case GLIMMER:								//All leds kind of on, on low brightness
 				curPWMvalues[ lfsr(8)%NLEDS ] += 1;		//Every frame a random LED is made a bit brighter
-				if( tempFrameCounter++ > 3 ){				//Every 3 frames a LED is turned OFF
+				if( tempFrameCounter++ > 3 ){			//Every 3 frames a LED is turned OFF
 					tempFrameCounter=0;
 					curPWMvalues[ lfsr(8)%NLEDS ] = 0;
 				}
@@ -230,7 +238,7 @@ void newFrameFullscreen( int8_t newState ){
 						*pwmValue_p += 1;
 					}
 				} else if ( tempFrameCounter <= 2*NLEDS - 1 ) {
-					pwmValue_p = &curPWMvalues[ tempFrameCounter - 12 ];
+					pwmValue_p = &curPWMvalues[ tempFrameCounter - NLEDS ];
 					if( *pwmValue_p <= 0 ){
 						tempFrameCounter++;
 					} else {

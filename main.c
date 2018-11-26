@@ -4,9 +4,29 @@
  *  Created on: Apr 14, 2014
  *      Author: michael
  *
- * !!! Wedding present version with 12 LEDs and no nRF module !!!
+ *  !!! IOT version with nRF module !!!
  * 
- * PWM works like this: 8-12 Wakeups per PWM cycle, arranged in a 2^N way
+ * We will have 4 or 5 fixed glowing patterns as wavetable in flash memory
+ * 		One is about 4 or 5 s long and rather dim and continous
+ *		One is < 1 s long and short but intense (but less likely to be played)
+ * WDT measures light conditions and battery voltage every 8 seconds 	-- in onWDT()
+ *	--> If dark and full, switch WDT to 0.5 s interrupts
+ * If less than 4 Blinky sequences are in progress:
+ * 		There is a certain change that WDT starts a new Blinky sequence -- in onWDT()
+ * Blinky
+ * 	- int8_t pwmChannel					//Set to a random and FREE LED channel, -1 = inactive Blinky slot
+ *  - uint8_t *glowingPatternPointer	//Set to a random pattern with preference for more dim patterns
+ *  - uint8_t samplesLeftInPattern		//How many samples left to show in this pattern
+ *  - uint8_t blinkySpeed				//Delay between samples, set to a random value with reasonable limits
+ * Blinky is updated and shown on the LEDs by setting curPWMvalues[]	-- in onNewFrame()
+ * 		if samplesLeftInPattern==0:  pwmChannel=-1   --> Blinky slot is inactive
+ *
+ * Things to do
+ * --------------
+ * All pwm values are iterated during every wakeup in the PWM routine which is rather inefficient
+ * (even if the OCR register is used for precise wakeups)
+ *
+ * Better: 8-10 Wakeups per PWM cycle, arranged in a 2^N way
  *
  * Each wakeup uses precalculated port settings which are output from ram to the port pins
  * For 10 bit PWM we have the arrays uint8_t pwmPrecalcPortB[10], pwmPrecalcPortC[10], pwmPrecalcPortD[10]
@@ -44,31 +64,40 @@
 #include "main.h"
 #include "glowPatterns.h"
 #include "pulseCode.h"
+#include "myNRF24.h"
+#include "mySPI_avr.h"
+#include "nRF24L01.h"
 
 //--------------------------------------------------
 // Global variables
 //--------------------------------------------------
 volatile uint8_t flags = 0;
-uint16_t cycleCount = 0;
-uint16_t vCap=0, vSolar=0;
+uint16_t vCap=0, vSolar=0, temperature=0, wdtCountSinceManual=0;
+
 
 
 void init(void) {
 //--------------------------------------------------
 // LED Ports
 //--------------------------------------------------
-	DDRC   = 0b00111111;	//Set LED pins as output
+	DDRC   = 0b00001111;	//Set LED pins as output
 	DDRD   = 0b11111100;
 //--------------------------------------------------
 // Power Reduction, switch off every peripheral not needed
 //--------------------------------------------------
 	PRR    = 0xFF;
+	CBI( PRR, PRSPI );						//Enable SPI
 	SBI( MCUCR, PUD );						//Disable Pull-ups globally
 //--------------------------------------------------
 // Serial debugging at 38400 baud/s
 //--------------------------------------------------
 	SBI( DDRD, PD1 );						//Set UART TX pin as output
 	odDebugInit();
+//--------------------------------------------------
+// Pin change interrupt PCINT1 for nRF24 status
+//--------------------------------------------------
+	SBI( PCICR, PCIE0 );					//Enable PCINT0 - PCINT7
+	SBI( PCMSK0, PCINT1 );					//Enable specifically PCINT1
 //-----------------------------------------------------------------------
 // ADC for measuring CAP voltage with divider: 560k, 160k, on PC5 = ADC5
 //-----------------------------------------------------------------------
@@ -121,9 +150,10 @@ void ledTest(){
 int main(){
 	init();				//Now Timer0 is running and will generate an interrupt on its first overflow
 	rprintf("\n\n---------------------------------------\n");
-	rprintf(" Hello world, this is Gluewuermle 3 ! \n");
+	rprintf(" Hello world, this is Gluewuermle 2 ! \n");
 	rprintf("---------------------------------------\n");
-	rprintf(" MAX_PWM_VALUE = %d\n", MAX_PWM_VALUE);
+	nRfInitTX();
+	nRfHexdump();
 	pwmTimerOn();
 	sei();
 	rprintf(" LED - test ... ");
@@ -131,30 +161,91 @@ int main(){
 	rprintf("OK\n");
 	currentState = STATE_GLOW_GLUEH;
 	WDT_FAST_MODE();
+
 	while(1){       	//We woke up. Figure out what to do (Wake-up sources: T0 compare match, WDT overflow)
         if ( IBI( flags, FLAG_wakeWDT ) ){		//This is called every PWM_CYCLES_PER_FRAME
-            onWDT();		                	//Update the PWM values, switch OFF T0 to save energy if finished to glow
+			onWDT();		                	//Update the PWM values, switch OFF T0 to save energy if finished to glow
 												//(Then we have less wake up interrupts and can do deep power down)
             CBI( flags, FLAG_wakeWDT );     	//Clear flag
         }
-        cycleCount++;							//Count wakeups
-		#if DEBUG_LEVEL > 0
-			_delay_ms( 1 );
-		#endif
+        if( IBI( flags, FLAG_nRF_RX_DR ) ){		//Read payload from RF module
+    		onRX();
+        	CBI( flags, FLAG_nRF_RX_DR );
+        }
+#if DEBUG_LEVEL > 0
+        _delay_ms( 1 );
+#endif
 		SLEEP();
 	}
 	return 0;
 }
 
-// Executed every 8 s by WDT to keep track of voltage levels
+//We have received something from the RF module (An Acc payload!)
+void onRX(){
+	uint8_t nBytes, readBuffer[32], i;
+	while( nRfIsRxDataReady() ){
+		nBytes = nRfGet_RX_Payload_Width();
+		nRfRead_payload( readBuffer, nBytes );
+		rprintf("Received %d bytes, rx[0] = %x\n", nBytes, readBuffer[0] );
+		if( nBytes == 1 ){
+			wdtCountSinceManual = 0;
+			currentState = STATE_GLOW_MANUAL_CONTROL;
+			WDT_FAST_MODE();
+			pwmTimerOff();
+			newFrameFullscreen( readBuffer[0] );
+			houseKeeping();
+			houseKeeping();
+			houseKeeping();
+			houseKeeping();
+		} else if( nBytes == 2 ){
+			g_maximumCoffeeLevel  = readBuffer[0] << 8;
+			g_maximumCoffeeLevel |= readBuffer[1] & 0xFF;
+		} else if( nBytes==NLEDS ){
+			wdtCountSinceManual = 0;
+			for( i=0; i<nBytes; i++){
+				setPwmValue( i, readBuffer[i] );
+			}
+			currentState = STATE_GLOW_MANUAL_CONTROL_SLOW;
+			WDT_SLOW_MODE();
+			pwmTimerOn();
+		}
+	}
+}
+
+
+// Executed every 4 * 8 s by WDT to keep track of voltage levels
 // Executed in any state except STATE_LOW_BATT
 // Save the battery from over / undervoltage and switch states
 void houseKeeping(){
-	uint8_t temp;
+	static uint8_t callCount=0;
+	if( callCount++ < 3 ){
+		return;
+	}
+	callCount = 0;
+	uint8_t temp, sendBuffer[12];
+	int16_t energySum=0;
 	vSolar = readVCAP();
 	vCap = readVSolar();
-//		temperature = readADC( ADC_MUX_TEMP, 64 );	//max value: 65472
-	if ( vCap < LBATT_THRESHOLD ){					//Go comatose!
+	if( !IBI(flags, FLAG_PWM_IS_ON) ){
+		temperature = readADC( ADC_MUX_TEMP, 64 );		//max value: 65472
+	}
+	sendBuffer[0] = vSolar&0x00FF;
+	sendBuffer[1] = (vSolar&0xFF00)>>8;
+	sendBuffer[2] = vCap&0x00FF;
+	sendBuffer[3] = (vCap&0xFF00)>>8;
+	sendBuffer[4] = ticksSinceBlinking&0x00FF;
+	sendBuffer[5] = (ticksSinceBlinking&0xFF00)>>8;
+	sendBuffer[6] = temperature&0x00FF;
+	sendBuffer[7] = (temperature&0xFF00)>>8;
+	sendBuffer[8] = currentState;
+	sendBuffer[9] = currentFSFlashMode;
+	for( temp=0; temp<NLEDS; temp++){
+		energySum += bugs[temp].availableEnergy;
+	}
+	sendBuffer[10] = energySum&0x00FF;
+	sendBuffer[11] = (energySum&0xFF00)>>8;
+	nRfSendBytes( sendBuffer, sizeof(sendBuffer), 0 );	//After sending something we could receive an ACK with payload!
+	if ( vCap < LBATT_THRESHOLD ){						//Go comatose!
 		rprintf("currentState = STATE_LOW_BATT  (Battery undervoltage!)  zzZZzzZZ\n");
 		currentState = STATE_LOW_BATT;
 		WDT_SLOW_MODE();
@@ -168,25 +259,14 @@ void houseKeeping(){
 			setPwmValue( temp, MAX_PWM_VALUE );
 		}
 	}
-	rprintf( "houseKeeping()   Vs = %4d   Vc = %4d   State = %d\n", vSolar, vCap, currentState );
+	rprintf( "houseKeeping()   Vs = %4d  Vc = %4d  Temp = %4d  State = %d\n", vSolar, vCap, temperature, currentState );
 }
 
 //--------------------------------------------------
-// Watch dog Interrupt
-//---------------------
-// if PWM_ouptut is on
-//		if a LED is on
-//			trigger every 0.03 s for new frame, Sleep = Idle (keep PWM timer running)
-//		if no LED is on
-//			trigger every 0.03 s for new frame, Sleep = Power down (Stop PWM timer)
-// if PWM_output is off
-//		trigger every 8.0 s for housekeeping, Sleep = Power down
-//---------------------
-// Housekeeping
-//---------------------
+// WDT = Housekeeping (every 8.0 s)
 // Decide if we should be in standby (during day) or glowing (during night)
-// If vBatt is too low, go to low power mode (wakeup every ten minutes)
-// If vBatt is too high, switch on all LEDs
+// 	Glowing:  start T0 PWM interrupt and switch to "Idle" sleep mode (Only CPU core is off during sleep)
+//  Standby:  stop  T0 PWM interrupt and switch to "Power-down" mode (Main oscillator is off during sleep)
 //--------------------------------------------------
 void onWDT(){
 	static uint16_t wdtWakeupCounter=0x0000;	//Used to do something only every n wakeups
@@ -212,15 +292,16 @@ void onWDT(){
 			if ( wdtWakeupCounter > WDT_N_WK_FAST_MODE ) {
 				wdtWakeupCounter = 0;
 				//--------------------------------------------------------------------
-				// Everything below is executed every 8 s, if blinking
+				// Everything below is executed every 4*8 s, if blinking
 				//--------------------------------------------------------------------
 				houseKeeping();					//Check for over / undervoltage and react
 			}
 		} else {								//WDT triggers once every 8 s
 			//--------------------------------------------------------------------
-			// Everything below is executed every 8 s, if not blinking
+			// Everything below is executed every 4*8 s, if not blinking
 			//--------------------------------------------------------------------
 			houseKeeping();						//Check for over / undervoltage and react
+			wdtWakeupCounter = 0;
 		}
 	}
 
@@ -230,12 +311,12 @@ void onWDT(){
 	//--------------------------------------------------------------------
 	case STATE_GLOW_FULLSCREEN:
 		newFrameFullscreen( -1 );
-		if( wdtWakeupCounter == 0 ){						//Triggered every 8 s if glowing
+		if( wdtWakeupCounter == 0 ){						//Triggered every 32 s if glowing
 			temp = lfsr(8);
 			newFrameFullscreen( temp&0x0F );				//Change glowing mode to temp
 			if( temp <= 15 ){								//Get out of Fullscreen glowing mode
-				currentState = STATE_GLOW_GLUEH;
 				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Fullscreen)\n");
+				currentState = STATE_GLOW_GLUEH;
 				for( temp=0; temp<NLEDS; temp++){
 					setPwmValue( temp, 0 );
 				}
@@ -253,6 +334,20 @@ void onWDT(){
 				rprintf("currentState = STATE_GLOW_FULLSCREEN  (Enough Glueh)\n");
 			}
 			houseKeepingWhileGlowing();
+		}
+		break;
+	case STATE_GLOW_MANUAL_CONTROL:
+		newFrameFullscreen( -1 );
+	case STATE_GLOW_MANUAL_CONTROL_SLOW:
+		if( wdtWakeupCounter == 0 ){	//every 8 s if glowing
+			if( wdtCountSinceManual++ > MANUAL_CONTROL_TIMEOUT ){
+				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Manual control)\n");
+				currentState = STATE_GLOW_GLUEH;
+				WDT_FAST_MODE();
+				for( temp=0; temp<NLEDS; temp++){
+					setPwmValue( temp, 0 );
+				}
+			}
 		}
 		break;
 	case STATE_CHARGING:				//Triggered every 8 s
@@ -316,3 +411,42 @@ uint16_t readVSolar(){
 }
 
 ISR( ADC_vect ){  }
+
+// nRF24 interrupt, something happened ( triggered on PCINT1 )
+ISR( PCINT0_vect ){
+	uint8_t status, temp;
+//	uint8_t dataPipe;
+	if( IBI(PINB,nRF_PIN_IRQ) ) {  	//If the pin is high this was a low to high transition which we must Ignore
+		return;
+	}
+	status = nRfGet_status();	//Otherwise the nRF24 module really triggered an interrupt
+	if( IBI(status, TX_DS) ){	//TX finished interrupt
+		temp = nRfRead_register( OBSERVE_TX ) & 0x0F;
+		rprintf("TX_DS: %d retries\n", temp);
+//		Data Sent TX FIFO interrupt. Asserted when
+//		packet transmitted on TX. If AUTO_ACK is acti-
+//		vated, this bit is set high only when ACK is
+//		received.
+//		Write 1 to clear bit.
+	}
+	if( IBI(status, RX_DR) ){	//RX data received
+		rprintf("RX_DR\n");
+//		dataPipe = ( status & 0b00001110 ) >> 1;
+//		The RX_DR IRQ is asserted by a new packet arrival event. The procedure for handling this interrupt should
+//		be: 1) read payload through SPI, 2) clear RX_DR IRQ, 3) read FIFO_STATUS to check if there are more
+//		payloads available in RX FIFO, 4) if there are more data in RX FIFO, repeat from step 1)
+		SBI( flags, FLAG_nRF_RX_DR );	//Let main handle the job!
+	}
+	if( IBI(status, MAX_RT) ){	//Maximum number of TX retries reached
+		rprintf("MAX_RT\n");
+//		Maximum number of TX retransmits interrupt
+//		Write 1 to clear bit. If MAX_RT is asserted it must
+//		be cleared to enable further communication.
+		if( nRfIsTxFifoFull() ){		//Okay screw this, enough playing around will empty the FIFO
+			rprintf("FIFO_CLEAR\n");
+			nRfFlush_tx();
+		}
+	}
+	nRfWrite_register( STATUS, (1<<TX_DS)|(1<<RX_DR)|(1<<MAX_RT) );	//Clear all interrupt flags
+	NRF_PWR_DOWN();
+}

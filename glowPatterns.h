@@ -10,20 +10,20 @@
 #include <inttypes.h>
 #include <avr/pgmspace.h>
 
-#define MAXIMUM_COFFEE_LEVEL 	500								//In energy points / 8s
+//--------------------------------------------------
+// Defines
+//--------------------------------------------------
+extern int16_t g_maximumCoffeeLevel;							//In energy points / 8 s
 #define MAXIMUM_VOLTAGE 		(HBATT_THRESHOLD - 50)			//Will output MAXIMUM_COFFEE_LEVEL
 #define MINIMUM_VOLTAGE 		(3500)							//Will output coffeeLevel = 0
-
-//--------------------------------------------------
-// Global variables
-//--------------------------------------------------
 #define MAX_ELEMENTS 35
-uint16_t curPWMvalues[ MAX_ELEMENTS ];				//Cache only
 #define MAX_ADR_curPWMvalues &curPWMvalues[ NLEDS-1 ]
 
+//--------------------------------------------------
+// Custom data-types
+//--------------------------------------------------
 typedef enum { BUG_INACTIVE_PENALTY, BUG_INACTIVE_RESCHEDULE, BUG_ACTIVE_SAMPLES } bugState_t;
 typedef enum {BLACK=0, GLIMMER, STARS, RAMP_UP, ROTATE, RAND_ROTATE, COLOR_FADE} fullScreenFlashMode_t;
-
 typedef struct{
 	bugState_t b_state;
 	uint16_t *samplePointer;		//Pointing to next valid sample if remainingSamples >0
@@ -32,6 +32,12 @@ typedef struct{
 	int16_t availableEnergy;		//Energy of the firefly. The higher, the brighter a pattern it can play
 }oneBug_t;
 
+//--------------------------------------------------
+// Global variables
+//--------------------------------------------------
+extern uint16_t ticksSinceBlinking;	//in 8 s intervals
+extern fullScreenFlashMode_t currentFSFlashMode;
+extern uint16_t curPWMvalues[ MAX_ELEMENTS ];				//Cache only
 extern oneBug_t bugs[ NLEDS ];		//Every bug controls one LED channel
 
 //--------------------------------------------------
