@@ -15,3 +15,6 @@ You can turn on UART prints in the Makefile to see what's going on.
 ```Makefile
 CFLAGS     += -DDEBUG_LEVEL=2
 ```
+
+## Hardware
+a little more info on the hardware can be found in this old [blog post](http://yetifrisstlama.blogspot.com/2014/07/fireflys-in-jar.html).
