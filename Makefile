@@ -3,7 +3,7 @@ USB_SERIAL  = /dev/ttyUSB0
 MCU         = atmega328p
 F_CPU       = 8000000UL
 SRCS        = $(wildcard *.c) $(wildcard myUtil/*.c)
-OBJS        = $(subst .c,.o,$(SRCS)) lfsr32.o
+OBJS        = $(subst .c,.o,$(SRCS)) lfsr32.o pulseCode.o
 INC         = -I. -ImyUtil
 GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 TOOLS_PREFIX = avr-
@@ -14,7 +14,7 @@ CC          = $(TOOLS_PREFIX)gcc
 ## Warnings, standards
 CFLAGS      = -O3 -Wall -std=gnu11
 ## Debug prints on UART: 0 = None (fastest!) 1 = Some, 2 = A lot
-CFLAGS     += -DDEBUG_LEVEL=2
+CFLAGS     += -DDEBUG_LEVEL=0
 ## Hardware definitions
 CFLAGS     += -DF_CPU=$(F_CPU) -mmcu=$(MCU) -DGIT_VERSION=\"$(GIT_VERSION)\"
 ## Use short (8-bit) data types
@@ -37,7 +37,7 @@ LDFLAGS += -Wl,--relax
 all: $(TARGET).hex $(TARGET).lst
 
 flash: $(TARGET).hex
-	avrdude -P $(USB_SERIAL) -b 57600 -c arduino -p atmega328p -U flash:w:$(TARGET).hex
+	avrdude -P $(USB_SERIAL) -b 38400 -c arduino -p atmega328p -U flash:w:$(TARGET).hex
 
 %.o: %.S
 	@echo -----------------------------------------------

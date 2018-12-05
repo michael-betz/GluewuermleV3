@@ -20,7 +20,7 @@
 #include "rprintf.h"
 #include "myWaves.h"
 
-int16_t g_maximumCoffeeLevel = 100;
+int16_t g_maximumCoffeeLevel = 150;
 
 oneBug_t bugs[ NLEDS ];								//Every bug controls one LED channel
 #define LAST_BUG_ADR (&bugs[NLEDS-1])
@@ -48,15 +48,15 @@ void houseKeepingWhileGlowing(){
 			temp_32 = 1;
 		}
 		coffeeLevel = temp_32;
-//#if DEBUG_LEVEL > 0
-//		sum=0;
-//		rprintf("eng[");
-//		for( temp=0; temp<NLEDS; temp++){
-//			rprintf(" %5d", bugs[temp].availableEnergy);
-//			sum += bugs[temp].availableEnergy;
-//		}
-//		rprintf( "] S=%5ld, cof=%3d\n",sum,coffeeLevel);
-//#endif
+#if DEBUG_LEVEL > 0
+		int32_t sum=0;
+		rprintf("eng[");
+		for( uint8_t temp=0; temp<NLEDS; temp++){
+			rprintf(" %5d", bugs[temp].availableEnergy);
+			sum += bugs[temp].availableEnergy;
+		}
+		rprintf( "] S=%5ld, cof=%3d\n",sum,coffeeLevel);
+#endif
 //  -----------------------------------------------------------
 //   Fed the bugs with "fireflyCoffeeLevel" energy every 8 seconds
 //	 The value is spread out amongst all 12 channels
@@ -331,7 +331,7 @@ void newFrameFullscreen( int8_t newState ){
 			setPwmValue( temp++, *pwmValue_p );
 		}
 	} else {											//Switch glowing mode!
-		if ( !IBI(flags, FLAG_PWM_IS_ON) ){				//Only change mode when all LEDs are OFF
+		// if ( !IBI(flags, FLAG_PWM_IS_ON) ){				//Only change mode when all LEDs are OFF
 			tempFrameCounter = 0;
 			framesInThisMode = 0;
 			if( newState > COLOR_FADE ){
@@ -340,6 +340,6 @@ void newFrameFullscreen( int8_t newState ){
 			currentFSFlashMode = newState;
 			pwmTimerOn();
 			rprintf("currentFSFlashMode = %d\n", currentFSFlashMode);
-		}
+		// }
 	}
 }

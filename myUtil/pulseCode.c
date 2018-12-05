@@ -43,7 +43,7 @@ void pwmTimerOff(void) {
 		return;
 	}
 	CBI(flags, FLAG_PWM_IS_ON);
-	//rprintf(" PL ");
+	// rprintf(" PL ");
 	PWM_TIMER_OFF();						//Prescaler: 0 Hz --> Timer Off
 	PRR |= (1 << PRTIM1);					//Switch Off clock to Timer1
 	PORTC = 0;
@@ -56,7 +56,7 @@ void pwmTimerOn(void) {
 		return;
 	}
 	SBI(flags, FLAG_PWM_IS_ON);
-	//rprintf(" PH ");
+	// rprintf(" PH ");
 	PRR &= ~( (1<<PRTIM1) );				//Switch On clock to Timer 1
 	TCCR1A = 0b00000000;					//No Port change on compare match
 	TIFR1   = (1<<OCF1B)|(1<<OCF1A)|(1<<TOV1);	//Clear interrupt flags

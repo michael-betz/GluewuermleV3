@@ -129,13 +129,13 @@ void init(void) {
 
 void ledTest(){
 	uint8_t nled, iter, value=0xFF;
-	for( iter=0; iter<=4; iter++ ){
+	for( iter=0; iter<=2; iter++ ){
 		for( nled=0; nled<NLEDS; nled++){
 			setPwmValue( nled, value );
 			_delay_ms( 100 );
 		}
 		if( value == 0xFF ){
-			value = 0x01;
+			value = 0x00;
 		} else {
 			value = 0xFF;
 		}
@@ -178,6 +178,28 @@ int main(){
 	return 0;
 }
 
+static void sendState()
+{
+	uint8_t sendBuffer[12];
+	int16_t energySum=0;
+	sendBuffer[0] = vSolar&0x00FF;
+	sendBuffer[1] = (vSolar&0xFF00)>>8;
+	sendBuffer[2] = vCap&0x00FF;
+	sendBuffer[3] = (vCap&0xFF00)>>8;
+	sendBuffer[4] = ticksSinceBlinking&0x00FF;
+	sendBuffer[5] = (ticksSinceBlinking&0xFF00)>>8;
+	sendBuffer[6] = temperature&0x00FF;
+	sendBuffer[7] = (temperature&0xFF00)>>8;
+	sendBuffer[8] = currentState;
+	sendBuffer[9] = currentFSFlashMode;
+	for( uint8_t temp=0; temp<NLEDS; temp++){
+		energySum += bugs[temp].availableEnergy;
+	}
+	sendBuffer[10] = energySum&0x00FF;
+	sendBuffer[11] = (energySum&0xFF00)>>8;
+	nRfSendBytes( sendBuffer, sizeof(sendBuffer), 0 );	//After sending something we could receive an ACK with payload!
+}
+
 //We have received something from the RF module (An Acc payload!)
 void onRX(){
 	uint8_t nBytes, readBuffer[32], i;
@@ -191,10 +213,7 @@ void onRX(){
 			WDT_FAST_MODE();
 			pwmTimerOff();
 			newFrameFullscreen( readBuffer[0] );
-			houseKeeping();
-			houseKeeping();
-			houseKeeping();
-			houseKeeping();
+			sendState();
 		} else if( nBytes == 2 ){
 			g_maximumCoffeeLevel  = readBuffer[0] << 8;
 			g_maximumCoffeeLevel |= readBuffer[1] & 0xFF;
@@ -220,29 +239,12 @@ void houseKeeping(){
 		return;
 	}
 	callCount = 0;
-	uint8_t temp, sendBuffer[12];
-	int16_t energySum=0;
 	vSolar = readVCAP();
 	vCap = readVSolar();
 	if( !IBI(flags, FLAG_PWM_IS_ON) ){
 		temperature = readADC( ADC_MUX_TEMP, 64 );		//max value: 65472
 	}
-	sendBuffer[0] = vSolar&0x00FF;
-	sendBuffer[1] = (vSolar&0xFF00)>>8;
-	sendBuffer[2] = vCap&0x00FF;
-	sendBuffer[3] = (vCap&0xFF00)>>8;
-	sendBuffer[4] = ticksSinceBlinking&0x00FF;
-	sendBuffer[5] = (ticksSinceBlinking&0xFF00)>>8;
-	sendBuffer[6] = temperature&0x00FF;
-	sendBuffer[7] = (temperature&0xFF00)>>8;
-	sendBuffer[8] = currentState;
-	sendBuffer[9] = currentFSFlashMode;
-	for( temp=0; temp<NLEDS; temp++){
-		energySum += bugs[temp].availableEnergy;
-	}
-	sendBuffer[10] = energySum&0x00FF;
-	sendBuffer[11] = (energySum&0xFF00)>>8;
-	nRfSendBytes( sendBuffer, sizeof(sendBuffer), 0 );	//After sending something we could receive an ACK with payload!
+	sendState();
 	if ( vCap < LBATT_THRESHOLD ){						//Go comatose!
 		rprintf("currentState = STATE_LOW_BATT  (Battery undervoltage!)  zzZZzzZZ\n");
 		currentState = STATE_LOW_BATT;
@@ -253,7 +255,7 @@ void houseKeeping(){
 		currentState = STATE_HIGH_BATT;
 		WDT_SLOW_MODE();
 		pwmTimerOn();
-		for( temp=0; temp<NLEDS; temp++){
+		for( uint8_t temp=0; temp<NLEDS; temp++){
 			setPwmValue( temp, MAX_PWM_VALUE );
 		}
 	}
@@ -312,7 +314,7 @@ void onWDT(){
 		if( wdtWakeupCounter == 0 ){						//Triggered every 32 s if glowing
 			temp = lfsr(8);
 			newFrameFullscreen( temp&0x0F );				//Change glowing mode to temp
-			if( temp <= 15 ){								//Get out of Fullscreen glowing mode
+			if( temp <= 12 ){								//Get out of Fullscreen glowing mode
 				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Fullscreen)\n");
 				currentState = STATE_GLOW_GLUEH;
 				for( temp=0; temp<NLEDS; temp++){
@@ -325,7 +327,7 @@ void onWDT(){
 	case STATE_GLOW_GLUEH:				//Triggered every 0.03 s
 		newFrameGlueh();
 		if( wdtWakeupCounter == 0 ){	//every 8 s if glowing
-			if( (lfsr(8)<=2) && (vCap>3800) ){	//If vCap > 3800 mV
+			if( (lfsr(8)<=1) && (vCap>3700) ){	//If vCap > 3700 mV
 				currentState = STATE_GLOW_FULLSCREEN;
 				pwmTimerOff();
 				newFrameFullscreen( 0 );//Switch to BLACK mode
@@ -420,7 +422,7 @@ ISR( PCINT0_vect ){
 	status = nRfGet_status();	//Otherwise the nRF24 module really triggered an interrupt
 	if( IBI(status, TX_DS) ){	//TX finished interrupt
 		temp = nRfRead_register( OBSERVE_TX ) & 0x0F;
-		rprintf("TX_DS: %d retries\n", temp);
+		// rprintf("TX_DS: %d retries\n", temp);
 //		Data Sent TX FIFO interrupt. Asserted when
 //		packet transmitted on TX. If AUTO_ACK is acti-
 //		vated, this bit is set high only when ACK is
