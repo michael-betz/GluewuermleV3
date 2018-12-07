@@ -26,12 +26,12 @@
 .global TIMER1_COMPA_vect
 TIMER1_COMPA_vect:
     // Save only the most basic context first (SREG save inspired by GCC)
-    push	_sRegSave
+    push    _sRegSave
     in      _sRegSave, _SFR_IO_ADDR(SREG)
     push    _temp0
     push    _temp1
-    push	_yl
-    push	_yh
+    push    _yl
+    push    _yh
 
     //-------------------------------------------
     // Branch if( currentBit >= NBITS-1 ) to start a new cycle
@@ -79,12 +79,12 @@ TIMER1_COMPA_vect:
 
 endOfISR:
     // Restore the most basic context
-    pop		_yh
-    pop		_yl
+    pop     _yh
+    pop     _yl
     pop     _temp1
     pop     _temp0
     out     _SFR_IO_ADDR(SREG), _sRegSave
-	pop	    _sRegSave
+    pop     _sRegSave
     reti
 
 isrStartNewCycle:
@@ -125,7 +125,7 @@ isrStartNewCycle:
     //-------------------------------------------------
     // fckt. to output the timing critical bit0 - bit6
     //-------------------------------------------------
-    //What follows is the ASM routine, which outputs the first 7 bits, 
+    //What follows is the ASM routine, which outputs the first 7 bits,
     // then switches on the timer and exits the ISR
     // Okay, we are at the very beginning of a pwm cycle, the LEDs are currently all off
     // And we have some spare time to set up everything we need for the ultrafast pulse
@@ -144,7 +144,7 @@ isrStartNewCycle:
     // -----------------
     // bit0, 2 cycles
     // -----------------
-    out  _SFR_IO_ADDR(PORTC), _cachePC0   //[1]	out cached bit0
+    out  _SFR_IO_ADDR(PORTC), _cachePC0   //[1] out cached bit0
     out  _SFR_IO_ADDR(PORTD), _cachePD0   //[2]
     // -----------------
     // bit1, 4 cycles
@@ -158,8 +158,8 @@ isrStartNewCycle:
     // -----------------
     out  _SFR_IO_ADDR(PORTC), _temp0     //[1]  out cached bit2
     out  _SFR_IO_ADDR(PORTD), _temp1     //[2]
-    ld   _temp0,      Y+				 //[4] read bit3
-    ld   _temp1,      Y+				 //[6]
+    ld   _temp0,      Y+                 //[4] read bit3
+    ld   _temp1,      Y+                 //[6]
     nop                                  //[7]
     nop                                  //[8]
     // -----------------
@@ -167,8 +167,8 @@ isrStartNewCycle:
     // -----------------
     out  _SFR_IO_ADDR(PORTC), _temp0     //[1] out bit3
     out  _SFR_IO_ADDR(PORTD), _temp1     //[2]
-    ld   _temp0,      Y+				 //[4]read bit4
-    ld   _temp1,      Y+				 //[6] 
+    ld   _temp0,      Y+                 //[4]read bit4
+    ld   _temp1,      Y+                 //[6]
     //Now we got 16-6 = 10 cycles to burn until the next output
     DELAY_CYCLES 3                       // delay for 3*3 = 9 instructions
     nop                                  //[16]
@@ -177,8 +177,8 @@ isrStartNewCycle:
     // -----------------
     out  _SFR_IO_ADDR(PORTC), _temp0      //[1] out bit4
     out  _SFR_IO_ADDR(PORTD), _temp1      //[2]
-    ld   _temp0,      Y+				 //[4]read bit5
-    ld   _temp1,      Y+				 //[6]
+    ld   _temp0,      Y+                 //[4]read bit5
+    ld   _temp1,      Y+                 //[6]
     //We got 32-6 = 26 cycles to burn until the next output
     DELAY_CYCLES 8                       // delay for 8*3 = 24 instructions
     nop                                  //[31]
@@ -189,7 +189,7 @@ isrStartNewCycle:
     out  _SFR_IO_ADDR(PORTC), _temp0      //[1] out bit5
     out  _SFR_IO_ADDR(PORTD), _temp1      //[2]
     ld   _temp0,      Y+                  //[4]read bit6
-    ld   _temp1,      Y+				  //[6]
+    ld   _temp1,      Y+                  //[6]
     //We got 64-6 = 58 cycles to burn until the next output
     DELAY_CYCLES 19                       // delay for 19*3 = 57 instructions
     nop                                   //[64]
@@ -208,7 +208,7 @@ isrStartNewCycle:
     pop _cachePD1
     pop _cachePC1
     pop _cachePD0
-    pop _cachePC0    
+    pop _cachePC0
 
     rjmp endOfISR
 
@@ -216,17 +216,17 @@ isrStartNewCycle:
 
 // Once every 8 s. Set flag to notify Main routine
     .global WDT_vect
-    WDT_vect:		//Trigger new WDT interrupt flag!
+    WDT_vect:       //Trigger new WDT interrupt flag!
     // Save only the most basic context first (SREG save inspired by GCC)
-    push	_sRegSave
+    push    _sRegSave
     in      _sRegSave, _SFR_IO_ADDR(SREG)
     push    _temp0
 
-	lds   	_temp0, flags
-	sbr   	_temp0, (1<<FLAG_wakeWDT)
-	sts   	flags, _temp0
+    lds     _temp0, flags
+    sbr     _temp0, (1<<FLAG_wakeWDT)
+    sts     flags, _temp0
 
-	pop		_temp0
-	out		_SFR_IO_ADDR(SREG), _sRegSave
-	pop		_sRegSave
-	reti
+    pop     _temp0
+    out     _SFR_IO_ADDR(SREG), _sRegSave
+    pop     _sRegSave
+    reti

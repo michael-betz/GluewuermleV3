@@ -104,7 +104,7 @@ oneBug_t *startSeqGlueh( uint8_t bugId ){
         bug->remainingSamples = tmpWave.length;
         bug->b_state = BUG_ACTIVE_SAMPLES;
         enCost = tmpWave.energyCost;
-//      rprintf( "bug[%2d]: ACTIVE, en = %d, cost = %d,  pBonus = %d\n", bugId, avEnergy, enCost, propBonus );
+        rprintf( "bug[%2d]: ACTIVE, en = %d, cost = %d,  pBonus = %d\n", bugId, bug->availableEnergy, enCost, propBonus );
 //      When a wave gets started, energy gets shifted around!
 //      if bug[0] was blinking with en:  bug[0]-=en, bug[1]+=en/2, bug[3]-=en/4, bug[4]-=en/8, etc.
 //      overall energy billiance is reduced by en
@@ -121,8 +121,8 @@ oneBug_t *startSeqGlueh( uint8_t bugId ){
         }
     } else {                        //Let the bug sleep for nRand samples otherwise
         bug->b_state = BUG_INACTIVE_PENALTY;
-        bug->remainingSamples = lfsr( 8 ); // 0 ... 255 seconds waiting time until next try
-//      rprintf( "bug[%2d]: PENALTY for %d samples, pBonus = %d\n", bugId, bug->remainingSamples, propBonus );
+        bug->remainingSamples = lfsr(11); // up to 1 min waiting time until next try
+        // rprintf( "bug[%2d]: PENALTY for %d samples, pBonus = %d\n", bugId, bug->remainingSamples, propBonus );
     }
     return bug;
 }
@@ -176,7 +176,8 @@ void newFrameGlueh(){
 //If newState < 0: just put a new frame
 //If newState > 0: change flash mode to newState
 void newFrameFullscreen( int8_t newState ){
-    uint16_t colorMatching[] = { 0xFF62, 0xFFF7, 0xFF81, 0xF904, 0xFFA3, 0xFFB5 }; //Channel indexes (4 bit each) for Yellow, Orange, Red, White, Green, Blue
+    // Channel indexes (4 bit each) for Yellow, Orange, Red, White, Green, Blue
+    uint16_t colorMatching[] = {0xFFBA, 0xFFF0, 0xFF21, 0xFFF9, 0xFF63, 0xFF87};
     uint8_t temp, nled;
     uint16_t *pwmValue_p, temp2;
     static uint16_t framesInThisMode=0;
@@ -325,7 +326,7 @@ void newFrameFullscreen( int8_t newState ){
             setPwmValue( temp++, *pwmValue_p );
         }
     } else {                                            //Switch glowing mode!
-        // if ( !IBI(flags, FLAG_PWM_IS_ON) ){              //Only change mode when all LEDs are OFF
+        if ( !IBI(flags, FLAG_PWM_IS_ON) ){              //Only change mode when all LEDs are OFF
             tempFrameCounter = 0;
             framesInThisMode = 0;
             if( newState > COLOR_FADE ){
@@ -334,6 +335,6 @@ void newFrameFullscreen( int8_t newState ){
             currentFSFlashMode = newState;
             pwmTimerOn();
             rprintf("currentFSFlashMode = %d\n", currentFSFlashMode);
-        // }
+        }
     }
 }

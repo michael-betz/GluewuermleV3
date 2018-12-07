@@ -16,14 +16,14 @@
 //----------------------------------------
 // Defines for the nRF24 module
 //----------------------------------------
-#define nRF_PIN_IRQ			PB1			// Interrupt notification		(IN)
-#define nRF_PIN_CNS			PB2			// SPI inverted chip select		(OUT)
-#define nRF_PIN_EN			PB0			// Transceiver enable			(OUT)
+#define nRF_PIN_IRQ         PB1         // Interrupt notification       (IN)
+#define nRF_PIN_CNS         PB2         // SPI inverted chip select     (OUT)
+#define nRF_PIN_EN          PB0         // Transceiver enable           (OUT)
 
-#define	NRF_CHIP_SELECT()	CBI( PORTB, nRF_PIN_CNS );
-#define	NRF_CHIP_DESELECT() SBI( PORTB, nRF_PIN_CNS );
-#define	NRF_CE_ON()			SBI( PORTB, nRF_PIN_EN );
-#define	NRF_CE_OFF()		CBI( PORTB, nRF_PIN_EN );
+#define NRF_CHIP_SELECT()   CBI( PORTB, nRF_PIN_CNS );
+#define NRF_CHIP_DESELECT() SBI( PORTB, nRF_PIN_CNS );
+#define NRF_CE_ON()         SBI( PORTB, nRF_PIN_EN );
+#define NRF_CE_OFF()        CBI( PORTB, nRF_PIN_EN );
 
 void initSPI( void );   //Must be called before doing other stuff
 uint8_t nRfRead_registers(uint8_t reg, uint8_t *buf, uint8_t len);
