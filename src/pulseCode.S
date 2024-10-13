@@ -1,5 +1,5 @@
 #include <avr/io.h>
-#include "./myUtil/pulseCode.h"
+#include "pulseCode.h"
 
 //-------------------------------------------
 // GCC global variable imports

@@ -10,7 +10,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include "rprintf.h"
-#include "../main.h"
+#include "main.h"
 #include "pulseCode.h"
 
 volatile uint16_t pwmPortRaw[ NBITS ];    //N Precalculated Pin values for 16 ports to achieve N bit pulse code modulation

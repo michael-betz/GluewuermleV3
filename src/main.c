@@ -236,8 +236,8 @@ void houseKeeping(){
         return;
     }
     callCount = 0;
-    vSolar = readVCAP();
-    vCap = readVSolar();
+    vCap = readVCAP();
+    vSolar = readVSolar();
     if( !IBI(flags, FLAG_PWM_IS_ON) ){
         temperature = readADC( ADC_MUX_TEMP, 64 );      //max value: 65472
     }
