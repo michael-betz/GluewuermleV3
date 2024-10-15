@@ -47,6 +47,15 @@ The AVR board has been modified in the following way for very low power operatio
 ### Optional: use internal 8 MHz RC osc.
 The fuses have been reprogrammed to use the 8 MHz internal oscillator instead of the 16 MHz onboard crystal. This significantly speeds up the processor wake up time from sleep and hence saves power.
 
+__Buspirate connection__
+
+| Bus pirate pin label | AVR port | Arduino IO number |
+|----------------------|----------|-------------------|
+| MOSI                 | PB3      | 11                |
+| MISO                 | PB4      | 12                |
+| SCK                  | PB5      | 13                |
+| CS                   | PC6      | RST               |
+
 __Check current fuse settings:__
 
 ```bash
