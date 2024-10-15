@@ -87,7 +87,7 @@ void init(void) {
     CBI( PRR, PRSPI );                      //Enable SPI
     SBI( MCUCR, PUD );                      //Disable Pull-ups globally
 //--------------------------------------------------
-// Serial debugging at 57600 baud/s
+// Serial debugging at 115200 baud/s
 //--------------------------------------------------
     SBI( DDRD, PD1 );                       //Set UART TX pin as output
     odDebugInit();
