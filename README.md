@@ -43,9 +43,30 @@ The AVR board has been modified in the following way for very low power operatio
   * The voltage regulator has been removed and VCC has been connected directly to the battery
   * The Schottky diode, which is already on the board, has been rewired to be in series with the solar cell. It only has 0.2 V forward voltage drop, which is excellent!
   * 2 Voltage dividers with the 560k and 160k resistors and 100nF capacitors have been made and connected to Vsolar and Vbattery. The AVR uses the internal 1.1 V reference voltage for the ADC, which allows to measure voltages up to 4.95 V
-  * Optional: the onboard serial bootloader has been rebuilt to work at 8 MHz and 38400 Baud
-  * Optional: The fuses have been reprogrammed to use the 8 MHz internal oscillator instead of the 16 MHz onboard crystal. This significantly speeds up the processor wake up time from sleep and hence saves power
 
+### Optional: use internal 8 MHz RC osc.
+The fuses have been reprogrammed to use the 8 MHz internal oscillator instead of the 16 MHz onboard crystal. This significantly speeds up the processor wake up time from sleep and hence saves power.
+
+__Check current fuse settings:__
+
+```bash
+cd ~/.platformio/packages/tool-avrdude
+./avrdude -C avrdude.conf -p m328p -c buspirate -P /dev/ttyUSB0
+```
+
+[AVR Fuse Calculator](https://eleccelerator.com/fusecalc/fusecalc.php?chip=atmega328p)
+
+__Switch to 8 MHz internal oscillator__
+
+  * no startup delay
+  * with 1.8 V brown out reset
+  * flash the bootloader for 8 MHz (only needed if previously running at 16 MHz)
+
+```bash
+# to use bus-pirate, uncomment the upload_flags and upload_command
+# overrides in platformio.ini
+pio run -t bootloader
+```
 
 ### Pinout
 Note that this pinout allows to connect an optional nRF24 module to PORTB.

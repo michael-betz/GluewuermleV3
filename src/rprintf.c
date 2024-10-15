@@ -40,9 +40,11 @@
 
 void odDebugInit( )
 {
-    PRR &= ~(1<<PRUSART0);
-    ODDBG_UCR |= (1<<ODDBG_TXEN);
-    ODDBG_UBRR = F_CPU / (38400 * 16L) - 1;
+    PRR &= ~(1 << PRUSART0);
+    ODDBG_UCR |= (1 << ODDBG_TXEN);
+    // the below results in: 115200 baud/s at FCPU 8 MHZ
+    ODDBG_USR |= (1 << U2X0);
+    ODDBG_UBRR = 8;
     rprintfInit( &uartPutc );
 }
 
