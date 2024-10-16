@@ -14,18 +14,18 @@
 // PWM LEDs
 #define NLEDS                   12          //How many PWM channels to handle
 // ADC, voltage measurement
-#define VCAPDIVH                560.0       //[kOhm]
+#define VCAPDIVH                549.0       //[kOhm]
 #define VCAPDIVL                160.0       //[kOhm]
 #define VCAP_CONV_FACT_MV       (uint16_t)( 10000.0 / 1023 * 1.1 * ( VCAPDIVL + VCAPDIVH ) / VCAPDIVL ) //to get [10*mV] from the ADC value
-#define ADC_MUX_VCAP            0x05
-#define ADC_MUX_SOLAR           0x04
+#define ADC_MUX_VCAP            0x06
+#define ADC_MUX_SOLAR           0x07
 #define ADC_MUX_TEMP            0x08
 #define ADC_MUX_VREF            0x0E
 #define ADC_MUX_GND             0x0F
 // Sleeping behaviour
 #define LBATT_THRESHOLD         3300        //[mV] go to deep sleep mode to save battery
 #define HBATT_THRESHOLD         4200        //[mV] switch on LEDs to burn overvoltage
-#define CHARGING_THRESHOLD      2000        //Sun is present if the solar cell voltage is more than that [mV]
+#define CHARGING_THRESHOLD      3000        //Sun is present if the solar cell voltage is more than that [mV]
 #define WDT_N_WK_ADC_LBATT      113/4       //Only measure voltage every 113/4 * 32 = 15 min if battery is down
 #define MANUAL_CONTROL_TIMEOUT  113/4       //Go back to automode if no new command received for n 32s intervals
 // Status flags

@@ -78,8 +78,9 @@ void init(void) {
 //--------------------------------------------------
 // LED Ports
 //--------------------------------------------------
-    DDRC   = 0b00001111;    //Set LED pins as output
+    DDRC   = 0b00111111;    //Set LED pins as output
     DDRD   = 0b11111100;
+
 //--------------------------------------------------
 // Power Reduction, switch off every peripheral not needed
 //--------------------------------------------------
@@ -91,6 +92,7 @@ void init(void) {
 //--------------------------------------------------
     SBI( DDRD, PD1 );                       //Set UART TX pin as output
     odDebugInit();
+
 //--------------------------------------------------
 // Pin change interrupt PCINT1 for nRF24 status
 //--------------------------------------------------
@@ -307,24 +309,24 @@ void onWDT(){
     // Everything below is specific to a certain state
     //--------------------------------------------------------------------
     case STATE_GLOW_FULLSCREEN:
-        newFrameFullscreen( -1 );
-        if( wdtWakeupCounter == 0 ){                        //Triggered every 32 s if glowing
+        newFrameFullscreen(-1);
+        if (wdtWakeupCounter == 0) {  // Triggered every 32 s if glowing
             temp = lfsr(8);
-            newFrameFullscreen( temp&0x0F );                //Change glowing mode to temp
-            if( temp <= 12 ){                               //Get out of Fullscreen glowing mode
+            newFrameFullscreen( temp & 0x0F );  // Change glowing mode to temp
+            if(temp <= 12) {  // Get out of Fullscreen glowing mode
                 rprintf("currentState = STATE_GLOW_GLUEH  (Enough Fullscreen)\n");
                 currentState = STATE_GLOW_GLUEH;
                 for( temp=0; temp<NLEDS; temp++){
-                    setPwmValue( temp, 0 );
+                    setPwmValue(temp, 0);
                 }
             }
             houseKeepingWhileGlowing();
         }
         break;
-    case STATE_GLOW_GLUEH:              //Triggered every 0.03 s
+    case STATE_GLOW_GLUEH:  // Triggered every 0.03 s
         newFrameGlueh();
-        if( wdtWakeupCounter == 0 ){    //every 8 s if glowing
-            if( (lfsr(8)<=1) && (vCap>3700) ){  //If vCap > 3700 mV
+        if( wdtWakeupCounter == 0 ) {  // every 8 s if glowing
+            if( (lfsr(8) <= 0) && (vCap > 3900) ) {
                 currentState = STATE_GLOW_FULLSCREEN;
                 pwmTimerOff();
                 newFrameFullscreen( 0 );//Switch to BLACK mode

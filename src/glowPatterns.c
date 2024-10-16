@@ -40,7 +40,7 @@ void houseKeepingWhileGlowing(){
     //  fireflyCoffeeLevel = 0 (not active at all) ... 200 (very active)
         temp_32  = ((int32_t)( vCap - MINIMUM_VOLTAGE )) * g_maximumCoffeeLevel;    //temp2 = 0 ... (MAXIMUM_VOLTAGE-MINIMUM_VOLTAGE) * MAXIMUM_COFFEE_LEVEL
         temp_32 /= ( MAXIMUM_VOLTAGE - MINIMUM_VOLTAGE );       //temp2 = 0 .. MAXIMUM_COFFEE_LEVEL
-        temp_32 -= ticksSinceBlinking / 10;                     //1 hour = 450 ticks = 45 penalty points
+        temp_32 -= ticksSinceBlinking / 50;                     //1 hour = 450 ticks = 9 penalty points
         if( temp_32 > g_maximumCoffeeLevel ){
             temp_32 = g_maximumCoffeeLevel;
         }
