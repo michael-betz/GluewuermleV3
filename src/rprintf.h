@@ -63,7 +63,7 @@ the output and a memory block to dump in hex ('data' and 'len').
 #endif
 
 #if DEBUG_LEVEL > 0 && !(defined TXEN || defined TXEN0) /* no UART in device   \
-                                                         */
+														 */
 #warning "Debugging disabled because device has no UART"
 #undef DEBUG_LEVEL
 #endif
@@ -202,13 +202,13 @@ void rprintfCRLF(void);
 // Prints the number contained in "data" in hex format
 // u04,u08,u16,and u32 functions handle 4,8,16,or 32 bits respectively
 void rprintfu04(unsigned char data);  ///< Print 4-bit hex number. Outputs a
-                                      ///< single hex character.
+									  ///< single hex character.
 void rprintfu08(unsigned char data);  ///< Print 8-bit hex number. Outputs two
-                                      ///< hex characters.
+									  ///< hex characters.
 void rprintfu16(unsigned short data); ///< Print 16-bit hex number. Outputs four
-                                      ///< hex characters.
+									  ///< hex characters.
 void rprintfu32(unsigned long data); ///< Print 32-bit hex number. Outputs eight
-                                     ///< hex characters.
+									 ///< hex characters.
 
 //! A flexible integer-number printing routine.
 /// Print the number "n" in the given "base", using exactly "numDigits".
@@ -268,15 +268,15 @@ void rprintfFloat(char numDigits, double x);
 int rprintf1RamRom(unsigned char stringInRom, const char *format, ...);
 // #defines for RAM or ROM operation
 #define rprintf1(format, args...)                                              \
-  rprintf1RamRom(STRING_IN_ROM, PSTR(format), ##args)
+	rprintf1RamRom(STRING_IN_ROM, PSTR(format), ##args)
 #define rprintf1RAM(format, args...)                                           \
-  rprintf1RamRom(STRING_IN_RAM, format, ##args)
+	rprintf1RamRom(STRING_IN_RAM, format, ##args)
 
 // *** Default rprintf(...) ***
 // this next line determines what the the basic rprintf() defaults to:
 #if DEBUG_LEVEL > 0
 #define rprintf(format, args...)                                               \
-  rprintf1RamRom(STRING_IN_ROM, PSTR(format), ##args)
+	rprintf1RamRom(STRING_IN_ROM, PSTR(format), ##args)
 #else
 #define rprintf(format, args...)
 #endif
@@ -298,12 +298,12 @@ int rprintf2RamRom(unsigned char stringInRom, const char *sfmt, ...);
 // #defines for RAM or ROM operation
 #define rprintf2(format, args...) rprintf2RamRom(STRING_IN_ROM, format, ##args)
 #define rprintf2RAM(format, args...)                                           \
-  rprintf2RamRom(STRING_IN_RAM, format, ##args)
+	rprintf2RamRom(STRING_IN_RAM, format, ##args)
 
 // *** Default rprintf(...) ***
 // this next line determines what the the basic rprintf() defaults to:
 #define rprintf(format, args...)                                               \
-  rprintf2RamRom(STRING_IN_ROM, PSTR(format), ##args)
+	rprintf2RamRom(STRING_IN_ROM, PSTR(format), ##args)
 #endif // #ifdef RPRINTF_COMPLEX
 
 #else // #if DEBUG_LEVEL > 0

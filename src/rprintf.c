@@ -39,42 +39,42 @@
 #warning "Never compile production devices with debugging enabled"
 
 void odDebugInit() {
-  PRR &= ~(1 << PRUSART0);
-  ODDBG_UCR |= (1 << ODDBG_TXEN);
-  // the below results in: 115200 baud/s at FCPU 8 MHZ
-  ODDBG_USR |= (1 << U2X0);
-  ODDBG_UBRR = 8;
-  rprintfInit(&uartPutc);
+	PRR &= ~(1 << PRUSART0);
+	ODDBG_UCR |= (1 << ODDBG_TXEN);
+	// the below results in: 115200 baud/s at FCPU 8 MHZ
+	ODDBG_USR |= (1 << U2X0);
+	ODDBG_UBRR = 8;
+	rprintfInit(&uartPutc);
 }
 
 void uartPutc(unsigned char c) {
-  while (!(ODDBG_USR & (1 << ODDBG_UDRE)))
-    ; /* wait for data register empty */
-  ODDBG_UDR = c;
+	while (!(ODDBG_USR & (1 << ODDBG_UDRE)))
+		; /* wait for data register empty */
+	ODDBG_UDR = c;
 }
 
 static uchar hexAscii(uchar h) {
-  h &= 0xf;
-  if (h >= 10)
-    h += 'a' - (uchar)10 - '0';
-  h += '0';
-  return h;
+	h &= 0xf;
+	if (h >= 10)
+		h += 'a' - (uchar)10 - '0';
+	h += '0';
+	return h;
 }
 
 static void printHex(uchar c) {
-  uartPutc(hexAscii(c >> 4));
-  uartPutc(hexAscii(c));
+	uartPutc(hexAscii(c >> 4));
+	uartPutc(hexAscii(c));
 }
 
 void odDebug(uchar prefix, uchar *data, uchar len) {
-  printHex(prefix);
-  uartPutc(':');
-  while (len--) {
-    uartPutc(' ');
-    printHex(*data++);
-  }
-  uartPutc('\r');
-  uartPutc('\n');
+	printHex(prefix);
+	uartPutc(':');
+	while (len--) {
+		uartPutc(' ');
+		printHex(*data++);
+	}
+	uartPutc('\r');
+	uartPutc('\n');
 }
 
 //-------------------------------------------------------
@@ -109,30 +109,30 @@ static void (*rputchar)(unsigned char c);
 // you must call this function once and supply the character output
 // routine before using other functions in this library
 void rprintfInit(void (*putchar_func)(unsigned char c)) {
-  rputchar = putchar_func;
+	rputchar = putchar_func;
 }
 
 // *** rprintfChar ***
 // send a character/byte to the current output device
 void rprintfChar(unsigned char c) {
-  // do LF -> CR/LF translation
-  if (c == '\n')
-    rputchar('\r');
-  // send character
-  rputchar(c);
+	// do LF -> CR/LF translation
+	if (c == '\n')
+		rputchar('\r');
+	// send character
+	rputchar(c);
 }
 
 // *** rprintfStr ***
 // prints a null-terminated string stored in RAM
 void rprintfStr(char str[]) {
-  // send a string stored in RAM
-  // check to make sure we have a good pointer
-  if (!str)
-    return;
+	// send a string stored in RAM
+	// check to make sure we have a good pointer
+	if (!str)
+		return;
 
-  // print the string until a null-terminator
-  while (*str)
-    rprintfChar(*str++);
+	// print the string until a null-terminator
+	while (*str)
+		rprintfChar(*str++);
 }
 
 // *** rprintfStrLen ***
@@ -140,90 +140,90 @@ void rprintfStr(char str[]) {
 // begins printing at position indicated by <start>
 // prints number of characters indicated by <len>
 void rprintfStrLen(char str[], unsigned int start, unsigned int len) {
-  register int i = 0;
+	register int i = 0;
 
-  // check to make sure we have a good pointer
-  if (!str)
-    return;
-  // spin through characters up to requested start
-  // keep going as long as there's no null
-  while ((i++ < start) && (*str++))
-    ;
-  //  for(i=0; i<start; i++)
-  //  {
-  //      // keep steping through string as long as there's no null
-  //      if(*str) str++;
-  //  }
+	// check to make sure we have a good pointer
+	if (!str)
+		return;
+	// spin through characters up to requested start
+	// keep going as long as there's no null
+	while ((i++ < start) && (*str++))
+		;
+	//  for(i=0; i<start; i++)
+	//  {
+	//      // keep steping through string as long as there's no null
+	//      if(*str) str++;
+	//  }
 
-  // then print exactly len characters
-  for (i = 0; i < len; i++) {
-    // print data out of the string as long as we haven't reached a null yet
-    // at the null, start printing spaces
-    if (*str)
-      rprintfChar(*str++);
-    else
-      rprintfChar(' ');
-  }
+	// then print exactly len characters
+	for (i = 0; i < len; i++) {
+		// print data out of the string as long as we haven't reached a null yet
+		// at the null, start printing spaces
+		if (*str)
+			rprintfChar(*str++);
+		else
+			rprintfChar(' ');
+	}
 }
 
 // *** rprintfProgStr ***
 // prints a null-terminated string stored in program ROM
 void rprintfProgStr(const char str[]) {
-  // print a string stored in program memory
-  register char c;
+	// print a string stored in program memory
+	register char c;
 
-  // check to make sure we have a good pointer
-  if (!str)
-    return;
+	// check to make sure we have a good pointer
+	if (!str)
+		return;
 
-  // print the string until the null-terminator
-  while ((c = pgm_read_byte(str++)))
-    rprintfChar(c);
+	// print the string until the null-terminator
+	while ((c = pgm_read_byte(str++)))
+		rprintfChar(c);
 }
 
 // *** rprintfCRLF ***
 // prints carriage return and line feed
 void rprintfCRLF(void) {
-  // print CR/LF
-  // rprintfChar('\r');
-  // LF -> CR/LF translation built-in to rprintfChar()
-  rprintfChar('\n');
+	// print CR/LF
+	// rprintfChar('\r');
+	// LF -> CR/LF translation built-in to rprintfChar()
+	rprintfChar('\n');
 }
 
 // *** rprintfu04 ***
 // prints an unsigned 4-bit number in hex (1 digit)
 void rprintfu04(unsigned char data) {
-  // print 4-bit hex value
-  //  char Character = data&0x0f;
-  //  if (Character>9)
-  //      Character+='A'-10;
-  //  else
-  //      Character+='0';
-  rprintfChar(hexchar(data));
+	// print 4-bit hex value
+	//  char Character = data&0x0f;
+	//  if (Character>9)
+	//      Character+='A'-10;
+	//  else
+	//      Character+='0';
+	rprintfChar(hexchar(data));
 }
 
 // *** rprintfu08 ***
 // prints an unsigned 8-bit number in hex (2 digits)
 void rprintfu08(unsigned char data) {
-  // print 8-bit hex value
-  rprintfu04(data >> 4);
-  rprintfu04(data);
+	// print 8-bit hex value
+	rprintfu04(data >> 4);
+	rprintfu04(data);
 }
 
 // *** rprintfu16 ***
 // prints an unsigned 16-bit number in hex (4 digits)
 void rprintfu16(unsigned short data) {
-  // print 16-bit hex value
-  rprintfu08(data >> 8);
-  rprintfu08(data);
+	// print 16-bit hex value
+	rprintfu08(data >> 8);
+	rprintfu08(data);
 }
 
 // *** rprintfu32 ***
 // prints an unsigned 32-bit number in hex (8 digits)
 void rprintfu32(unsigned long data) {
-  // print 32-bit hex value
-  rprintfu16(data >> 16);
-  rprintfu16(data);
+	// print 32-bit hex value
+	rprintfu16(data >> 16);
+	rprintfu16(data);
 }
 
 // *** rprintfNum ***
@@ -239,103 +239,103 @@ void rprintfu32(unsigned long data) {
 //  uartPrintfNum(10, 6, FALSE, '0',   1234);  -->  "001234"
 //  uartPrintfNum(16, 6, FALSE, '.', 0x5AA5);  -->  "..5AA5"
 void rprintfNum(char base, char numDigits, char isSigned, char padchar,
-                long n) {
-  // define a global HexChars or use line below
-  // static char HexChars[16] = "0123456789ABCDEF";
-  char *p, buf[32];
-  unsigned long x;
-  unsigned char count;
+				long n) {
+	// define a global HexChars or use line below
+	// static char HexChars[16] = "0123456789ABCDEF";
+	char *p, buf[32];
+	unsigned long x;
+	unsigned char count;
 
-  // prepare negative number
-  if (isSigned && (n < 0)) {
-    x = -n;
-  } else {
-    x = n;
-  }
+	// prepare negative number
+	if (isSigned && (n < 0)) {
+		x = -n;
+	} else {
+		x = n;
+	}
 
-  // setup little string buffer
-  count = (numDigits - 1) - (isSigned ? 1 : 0);
-  p = buf + sizeof(buf);
-  *--p = '\0';
+	// setup little string buffer
+	count = (numDigits - 1) - (isSigned ? 1 : 0);
+	p = buf + sizeof(buf);
+	*--p = '\0';
 
-  // force calculation of first digit
-  // (to prevent zero from not printing at all!!!)
-  *--p = hexchar(x % base);
-  x /= base;
-  // calculate remaining digits
-  while (count--) {
-    if (x != 0) {
-      // calculate next digit
-      *--p = hexchar(x % base);
-      x /= base;
-    } else {
-      // no more digits left, pad out to desired length
-      *--p = padchar;
-    }
-  }
+	// force calculation of first digit
+	// (to prevent zero from not printing at all!!!)
+	*--p = hexchar(x % base);
+	x /= base;
+	// calculate remaining digits
+	while (count--) {
+		if (x != 0) {
+			// calculate next digit
+			*--p = hexchar(x % base);
+			x /= base;
+		} else {
+			// no more digits left, pad out to desired length
+			*--p = padchar;
+		}
+	}
 
-  // apply signed notation if requested
-  if (isSigned) {
-    if (n < 0) {
-      *--p = '-';
-    } else if (n > 0) {
-      *--p = '+';
-    } else {
-      *--p = ' ';
-    }
-  }
+	// apply signed notation if requested
+	if (isSigned) {
+		if (n < 0) {
+			*--p = '-';
+		} else if (n > 0) {
+			*--p = '+';
+		} else {
+			*--p = ' ';
+		}
+	}
 
-  // print the string right-justified
-  count = numDigits;
-  while (count--) {
-    rprintfChar(*p++);
-  }
+	// print the string right-justified
+	count = numDigits;
+	while (count--) {
+		rprintfChar(*p++);
+	}
 }
 
 #ifdef RPRINTF_FLOAT
 // *** rprintfFloat ***
 // floating-point print
 void rprintfFloat(char numDigits, double x) {
-  unsigned char firstplace = FALSE;
-  unsigned char negative;
-  unsigned char i, digit;
-  double place = 1.0;
+	unsigned char firstplace = FALSE;
+	unsigned char negative;
+	unsigned char i, digit;
+	double place = 1.0;
 
-  // save sign
-  negative = (x < 0);
-  // convert to absolute value
-  x = (x > 0) ? (x) : (-x);
+	// save sign
+	negative = (x < 0);
+	// convert to absolute value
+	x = (x > 0) ? (x) : (-x);
 
-  // find starting digit place
-  for (i = 0; i < 15; i++) {
-    if ((x / place) < 10.0)
-      break;
-    else
-      place *= 10.0;
-  }
-  // print polarity character
-  if (negative)
-    rprintfChar('-');
-  else
-    rprintfChar('+');
+	// find starting digit place
+	for (i = 0; i < 15; i++) {
+		if ((x / place) < 10.0)
+			break;
+		else
+			place *= 10.0;
+	}
+	// print polarity character
+	if (negative)
+		rprintfChar('-');
+	else
+		rprintfChar('+');
 
-  // print digits
-  for (i = 0; i < numDigits; i++) {
-    digit = (x / place);
+	// print digits
+	for (i = 0; i < numDigits; i++) {
+		digit = (x / place);
 
-    if (digit | firstplace | (place == 1.0)) {
-      firstplace = TRUE;
-      rprintfChar(digit + 0x30);
-    } else
-      rprintfChar(' ');
+		if (digit | firstplace | (place == 1.0)) {
+			firstplace = TRUE;
+			rprintfChar(digit + 0x30);
+		} else
+			rprintfChar(' ');
 
-    if (place == 1.0) {
-      rprintfChar('.');
-    }
+		if (place == 1.0) {
+			rprintfChar('.');
+		}
 
-    x -= (digit * place);
-    place /= 10.0;
-  }
+		x -= (digit * place);
+		place /= 10.0;
+	}
 }
 #endif
 
@@ -347,58 +347,58 @@ void rprintfFloat(char numDigits, double x) {
 // %x - hex
 // %c - character
 int rprintf1RamRom(unsigned char stringInRom, const char *format, ...) {
-  // simple printf routine
-  // define a global HexChars or use line below
-  // static char HexChars[16] = "0123456789ABCDEF";
-  char format_flag;
-  unsigned int u_val, div_val, base;
-  va_list ap;
+	// simple printf routine
+	// define a global HexChars or use line below
+	// static char HexChars[16] = "0123456789ABCDEF";
+	char format_flag;
+	unsigned int u_val, div_val, base;
+	va_list ap;
 
-  va_start(ap, format);
-  for (;;) {
-    while ((format_flag = READMEMBYTE(stringInRom, format++)) !=
-           '%') { // Until '%' or '\0'
-      if (!format_flag) {
-        va_end(ap);
-        return (0);
-      }
-      rprintfChar(format_flag);
-    }
+	va_start(ap, format);
+	for (;;) {
+		while ((format_flag = READMEMBYTE(stringInRom, format++)) !=
+			   '%') { // Until '%' or '\0'
+			if (!format_flag) {
+				va_end(ap);
+				return (0);
+			}
+			rprintfChar(format_flag);
+		}
 
-    switch (format_flag = READMEMBYTE(stringInRom, format++)) {
-    case 'c':
-      format_flag = va_arg(ap, int);
-    default:
-      rprintfChar(format_flag);
-      continue;
-    case 'd':
-      base = 10;
-      div_val = 10000;
-      goto CONVERSION_LOOP;
-      //          case 'x': base = 16; div_val = 0x10;
-    case 'x':
-      base = 16;
-      div_val = 0x1000;
+		switch (format_flag = READMEMBYTE(stringInRom, format++)) {
+		case 'c':
+			format_flag = va_arg(ap, int);
+		default:
+			rprintfChar(format_flag);
+			continue;
+		case 'd':
+			base = 10;
+			div_val = 10000;
+			goto CONVERSION_LOOP;
+			//          case 'x': base = 16; div_val = 0x10;
+		case 'x':
+			base = 16;
+			div_val = 0x1000;
 
-    CONVERSION_LOOP:
-      u_val = va_arg(ap, int);
-      if (format_flag == 'd') {
-        if (((int)u_val) < 0) {
-          u_val = -u_val;
-          rprintfChar('-');
-        }
-        while (div_val > 1 && div_val > u_val)
-          div_val /= 10;
-      }
-      do {
-        // rprintfChar(pgm_read_byte(HexChars+(u_val/div_val)));
-        rprintfu04(u_val / div_val);
-        u_val %= div_val;
-        div_val /= base;
-      } while (div_val);
-    }
-  }
-  va_end(ap);
+		CONVERSION_LOOP:
+			u_val = va_arg(ap, int);
+			if (format_flag == 'd') {
+				if (((int)u_val) < 0) {
+					u_val = -u_val;
+					rprintfChar('-');
+				}
+				while (div_val > 1 && div_val > u_val)
+					div_val /= 10;
+			}
+			do {
+				// rprintfChar(pgm_read_byte(HexChars+(u_val/div_val)));
+				rprintfu04(u_val / div_val);
+				u_val %= div_val;
+				div_val /= base;
+			} while (div_val);
+		}
+	}
+	va_end(ap);
 }
 #endif
 
@@ -410,189 +410,189 @@ int rprintf1RamRom(unsigned char stringInRom, const char *format, ...) {
 // **this printf does not support floating point numbers
 
 size_t strlen(const char *str) {
-  const char *s;
+	const char *s;
 
-  for (s = str; *s; ++s)
-    ;
-  return (s - str);
+	for (s = str; *s; ++s)
+		;
+	return (s - str);
 }
 
 unsigned char Isdigit(char c) {
-  if ((c >= 0x30) && (c <= 0x39))
-    return TRUE;
-  else
-    return FALSE;
+	if ((c >= 0x30) && (c <= 0x39))
+		return TRUE;
+	else
+		return FALSE;
 }
 
 int atoiRamRom(unsigned char stringInRom, char *str) {
-  int num = 0;
-  ;
+	int num = 0;
+	;
 
-  while (Isdigit(READMEMBYTE(stringInRom, str))) {
-    num *= 10;
-    num += ((READMEMBYTE(stringInRom, str++)) - 0x30);
-  }
-  return num;
+	while (Isdigit(READMEMBYTE(stringInRom, str))) {
+		num *= 10;
+		num += ((READMEMBYTE(stringInRom, str++)) - 0x30);
+	}
+	return num;
 }
 
 int rprintf2RamRom(unsigned char stringInRom, const char *sfmt, ...) {
-  register unsigned char *f, *bp;
-  register long l;
-  register unsigned long u;
-  register int i;
-  register int fmt;
-  register unsigned char pad = ' ';
-  int flush_left = 0, f_width = 0, prec = INF, hash = 0, do_long = 0;
-  int sign = 0;
+	register unsigned char *f, *bp;
+	register long l;
+	register unsigned long u;
+	register int i;
+	register int fmt;
+	register unsigned char pad = ' ';
+	int flush_left = 0, f_width = 0, prec = INF, hash = 0, do_long = 0;
+	int sign = 0;
 
-  va_list ap;
-  va_start(ap, sfmt);
+	va_list ap;
+	va_start(ap, sfmt);
 
-  f = (unsigned char *)sfmt;
+	f = (unsigned char *)sfmt;
 
-  for (; READMEMBYTE(stringInRom, f); f++) {
-    if (READMEMBYTE(stringInRom, f) != '%') { // not a format character
-      // then just output the char
-      rprintfChar(READMEMBYTE(stringInRom, f));
-    } else {
-      f++; // if we have a "%" then skip it
-      if (READMEMBYTE(stringInRom, f) == '-') {
-        flush_left = 1; // minus: flush left
-        f++;
-      }
-      if (READMEMBYTE(stringInRom, f) == '0' ||
-          READMEMBYTE(stringInRom, f) == '.') {
-        // padding with 0 rather than blank
-        pad = '0';
-        f++;
-      }
-      if (READMEMBYTE(stringInRom, f) == '*') { // field width
-        f_width = va_arg(ap, int);
-        f++;
-      } else if (Isdigit(READMEMBYTE(stringInRom, f))) {
-        f_width = atoiRamRom(stringInRom, (char *)f);
-        while (Isdigit(READMEMBYTE(stringInRom, f)))
-          f++; // skip the digits
-      }
-      if (READMEMBYTE(stringInRom, f) == '.') { // precision
-        f++;
-        if (READMEMBYTE(stringInRom, f) == '*') {
-          prec = va_arg(ap, int);
-          f++;
-        } else if (Isdigit(READMEMBYTE(stringInRom, f))) {
-          prec = atoiRamRom(stringInRom, (char *)f);
-          while (Isdigit(READMEMBYTE(stringInRom, f)))
-            f++; // skip the digits
-        }
-      }
-      if (READMEMBYTE(stringInRom, f) == '#') { // alternate form
-        hash = 1;
-        f++;
-      }
-      if (READMEMBYTE(stringInRom, f) == 'l') { // long format
-        do_long = 1;
-        f++;
-      }
+	for (; READMEMBYTE(stringInRom, f); f++) {
+		if (READMEMBYTE(stringInRom, f) != '%') { // not a format character
+			// then just output the char
+			rprintfChar(READMEMBYTE(stringInRom, f));
+		} else {
+			f++; // if we have a "%" then skip it
+			if (READMEMBYTE(stringInRom, f) == '-') {
+				flush_left = 1; // minus: flush left
+				f++;
+			}
+			if (READMEMBYTE(stringInRom, f) == '0' ||
+				READMEMBYTE(stringInRom, f) == '.') {
+				// padding with 0 rather than blank
+				pad = '0';
+				f++;
+			}
+			if (READMEMBYTE(stringInRom, f) == '*') { // field width
+				f_width = va_arg(ap, int);
+				f++;
+			} else if (Isdigit(READMEMBYTE(stringInRom, f))) {
+				f_width = atoiRamRom(stringInRom, (char *)f);
+				while (Isdigit(READMEMBYTE(stringInRom, f)))
+					f++; // skip the digits
+			}
+			if (READMEMBYTE(stringInRom, f) == '.') { // precision
+				f++;
+				if (READMEMBYTE(stringInRom, f) == '*') {
+					prec = va_arg(ap, int);
+					f++;
+				} else if (Isdigit(READMEMBYTE(stringInRom, f))) {
+					prec = atoiRamRom(stringInRom, (char *)f);
+					while (Isdigit(READMEMBYTE(stringInRom, f)))
+						f++; // skip the digits
+				}
+			}
+			if (READMEMBYTE(stringInRom, f) == '#') { // alternate form
+				hash = 1;
+				f++;
+			}
+			if (READMEMBYTE(stringInRom, f) == 'l') { // long format
+				do_long = 1;
+				f++;
+			}
 
-      fmt = READMEMBYTE(stringInRom, f);
-      bp = buf;
-      switch (fmt) { // do the formatting
-      case 'd':      // 'd' signed decimal
-        if (do_long)
-          l = va_arg(ap, long);
-        else
-          l = (long)(va_arg(ap, int));
-        if (l < 0) {
-          sign = 1;
-          l = -l;
-        }
-        do {
-          *bp++ = l % 10 + '0';
-        } while ((l /= 10) > 0);
-        if (sign)
-          *bp++ = '-';
-        f_width = f_width - (bp - buf);
-        if (!flush_left)
-          while (f_width-- > 0)
-            rprintfChar(pad);
-        for (bp--; bp >= buf; bp--)
-          rprintfChar(*bp);
-        if (flush_left)
-          while (f_width-- > 0)
-            rprintfChar(' ');
-        break;
-      case 'o': // 'o' octal number
-      case 'x': // 'x' hex number
-      case 'u': // 'u' unsigned decimal
-        if (do_long)
-          u = va_arg(ap, unsigned long);
-        else
-          u = (unsigned long)(va_arg(ap, unsigned));
-        if (fmt == 'u') { // unsigned decimal
-          do {
-            *bp++ = u % 10 + '0';
-          } while ((u /= 10) > 0);
-        } else if (fmt == 'o') { // octal
-          do {
-            *bp++ = u % 8 + '0';
-          } while ((u /= 8) > 0);
-          if (hash)
-            *bp++ = '0';
-        } else if (fmt == 'x') { // hex
-          do {
-            i = u % 16;
-            if (i < 10)
-              *bp++ = i + '0';
-            else
-              *bp++ = i - 10 + 'a';
-          } while ((u /= 16) > 0);
-          if (hash) {
-            *bp++ = 'x';
-            *bp++ = '0';
-          }
-        }
-        i = f_width - (bp - buf);
-        if (!flush_left)
-          while (i-- > 0)
-            rprintfChar(pad);
-        for (bp--; bp >= buf; bp--)
-          rprintfChar((int)(*bp));
-        if (flush_left)
-          while (i-- > 0)
-            rprintfChar(' ');
-        break;
-      case 'c': // 'c' character
-        i = va_arg(ap, int);
-        rprintfChar((int)(i));
-        break;
-      case 's': // 's' string
-        bp = va_arg(ap, unsigned char *);
-        if (!bp)
-          bp = (unsigned char *)"(nil)";
-        f_width = f_width - strlen((char *)bp);
-        if (!flush_left)
-          while (f_width-- > 0)
-            rprintfChar(pad);
-        for (i = 0; *bp && i < prec; i++) {
-          rprintfChar(*bp);
-          bp++;
-        }
-        if (flush_left)
-          while (f_width-- > 0)
-            rprintfChar(' ');
-        break;
-      case '%': // '%' character
-        rprintfChar('%');
-        break;
-      }
-      flush_left = 0, f_width = 0, prec = INF, hash = 0, do_long = 0;
-      sign = 0;
-      pad = ' ';
-    }
-  }
+			fmt = READMEMBYTE(stringInRom, f);
+			bp = buf;
+			switch (fmt) { // do the formatting
+			case 'd':	   // 'd' signed decimal
+				if (do_long)
+					l = va_arg(ap, long);
+				else
+					l = (long)(va_arg(ap, int));
+				if (l < 0) {
+					sign = 1;
+					l = -l;
+				}
+				do {
+					*bp++ = l % 10 + '0';
+				} while ((l /= 10) > 0);
+				if (sign)
+					*bp++ = '-';
+				f_width = f_width - (bp - buf);
+				if (!flush_left)
+					while (f_width-- > 0)
+						rprintfChar(pad);
+				for (bp--; bp >= buf; bp--)
+					rprintfChar(*bp);
+				if (flush_left)
+					while (f_width-- > 0)
+						rprintfChar(' ');
+				break;
+			case 'o': // 'o' octal number
+			case 'x': // 'x' hex number
+			case 'u': // 'u' unsigned decimal
+				if (do_long)
+					u = va_arg(ap, unsigned long);
+				else
+					u = (unsigned long)(va_arg(ap, unsigned));
+				if (fmt == 'u') { // unsigned decimal
+					do {
+						*bp++ = u % 10 + '0';
+					} while ((u /= 10) > 0);
+				} else if (fmt == 'o') { // octal
+					do {
+						*bp++ = u % 8 + '0';
+					} while ((u /= 8) > 0);
+					if (hash)
+						*bp++ = '0';
+				} else if (fmt == 'x') { // hex
+					do {
+						i = u % 16;
+						if (i < 10)
+							*bp++ = i + '0';
+						else
+							*bp++ = i - 10 + 'a';
+					} while ((u /= 16) > 0);
+					if (hash) {
+						*bp++ = 'x';
+						*bp++ = '0';
+					}
+				}
+				i = f_width - (bp - buf);
+				if (!flush_left)
+					while (i-- > 0)
+						rprintfChar(pad);
+				for (bp--; bp >= buf; bp--)
+					rprintfChar((int)(*bp));
+				if (flush_left)
+					while (i-- > 0)
+						rprintfChar(' ');
+				break;
+			case 'c': // 'c' character
+				i = va_arg(ap, int);
+				rprintfChar((int)(i));
+				break;
+			case 's': // 's' string
+				bp = va_arg(ap, unsigned char *);
+				if (!bp)
+					bp = (unsigned char *)"(nil)";
+				f_width = f_width - strlen((char *)bp);
+				if (!flush_left)
+					while (f_width-- > 0)
+						rprintfChar(pad);
+				for (i = 0; *bp && i < prec; i++) {
+					rprintfChar(*bp);
+					bp++;
+				}
+				if (flush_left)
+					while (f_width-- > 0)
+						rprintfChar(' ');
+				break;
+			case '%': // '%' character
+				rprintfChar('%');
+				break;
+			}
+			flush_left = 0, f_width = 0, prec = INF, hash = 0, do_long = 0;
+			sign = 0;
+			pad = ' ';
+		}
+	}
 
-  va_end(ap);
-  return 0;
+	va_end(ap);
+	return 0;
 }
 
 #endif // #ifdef RPRINTF_COMPLEX

@@ -13,9 +13,9 @@
 //--------------------------------------------------
 #define NBITS (13) // Do Pulse code modulation with N bits resolution
 #define MAX_PWM_VALUE                                                          \
-  ((1 << NBITS) - 1) // Do Pulse code modulation with N bits resolution
+	((1 << NBITS) - 1) // Do Pulse code modulation with N bits resolution
 #define TCCR1B_VALUE                                                           \
-  0b00001001 // For timing pwm periods, CTC mode, CLK = Tsys /  1
+	0b00001001 // For timing pwm periods, CTC mode, CLK = Tsys /  1
 
 #ifdef __ASSEMBLER__
 
@@ -58,17 +58,17 @@ brne .-4                             // if not zero, repeat loop
 // Global variables for C
 //--------------------------------------------------
 extern volatile unsigned int
-    pwmPortRaw[NBITS]; // N Precalculated Pin values for 16 ports to achieve N
-                       // bit pulse code modulation
+	pwmPortRaw[NBITS]; // N Precalculated Pin values for 16 ports to achieve N
+					   // bit pulse code modulation
 
 //--------------------------------------------------
 // Functions
 //--------------------------------------------------
 // Pseudo functions
 #define PWM_TIMER_OFF()                                                        \
-  { TCCR1B = 0; } // Switch off timer1
+	{ TCCR1B = 0; } // Switch off timer1
 #define PWM_TIMER_ON()                                                         \
-  { TCCR1B = TCCR1B_VALUE; } // Switch on timer1
+	{ TCCR1B = TCCR1B_VALUE; } // Switch on timer1
 
 void pwmTimerOn(void); // Callable functions
 void pwmTimerOff(void);

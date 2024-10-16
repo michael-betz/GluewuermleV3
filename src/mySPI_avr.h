@@ -18,7 +18,7 @@
 //----------------------------------------
 #define nRF_PIN_IRQ PB1 // Interrupt notification       (IN)
 #define nRF_PIN_CNS PB2 // SPI inverted chip select     (OUT)
-#define nRF_PIN_EN PB0  // Transceiver enable           (OUT)
+#define nRF_PIN_EN PB0	// Transceiver enable           (OUT)
 
 #define NRF_CHIP_SELECT() CBI(PORTB, nRF_PIN_CNS);
 #define NRF_CHIP_DESELECT() SBI(PORTB, nRF_PIN_CNS);
