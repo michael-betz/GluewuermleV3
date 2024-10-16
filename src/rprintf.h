@@ -42,7 +42,7 @@
 #define RPRINTF_H
 // This is defined in the Makefile now
 // #define DEBUG_LEVEL          0           //Enable serial debugging output
-#define RPRINTF_COMPLEX                     //Use the good printf
+#define RPRINTF_COMPLEX // Use the good printf
 
 #include <avr/io.h>
 
@@ -59,110 +59,110 @@ the output and a memory block to dump in hex ('data' and 'len').
 */
 
 #ifndef uchar
-#   define  uchar   unsigned char
+#define uchar unsigned char
 #endif
 
-#if DEBUG_LEVEL > 0 && !(defined TXEN || defined TXEN0) /* no UART in device */
-#   warning "Debugging disabled because device has no UART"
-#   undef   DEBUG_LEVEL
+#if DEBUG_LEVEL > 0 && !(defined TXEN || defined TXEN0) /* no UART in device   \
+                                                         */
+#warning "Debugging disabled because device has no UART"
+#undef DEBUG_LEVEL
 #endif
 
 #ifndef DEBUG_LEVEL
-#   define  DEBUG_LEVEL 0
+#define DEBUG_LEVEL 0
 #endif
 
 /* ------------------------------------------------------------------------- */
 
 #if DEBUG_LEVEL > 0
-#   define  DBG1(prefix, data, len) odDebug(prefix, data, len)
+#define DBG1(prefix, data, len) odDebug(prefix, data, len)
 #else
-#   define  DBG1(prefix, data, len)
+#define DBG1(prefix, data, len)
 #endif
 
 #if DEBUG_LEVEL > 1
-#   define  DBG2(prefix, data, len) odDebug(prefix, data, len)
+#define DBG2(prefix, data, len) odDebug(prefix, data, len)
 #else
-#   define  DBG2(prefix, data, len)
+#define DBG2(prefix, data, len)
 #endif
 
 /* ------------------------------------------------------------------------- */
 
 #if DEBUG_LEVEL > 0
-extern void odDebugInit( void );
+extern void odDebugInit(void);
 extern void odDebug(uchar prefix, uchar *data, uchar len);
-extern void uartPutc( unsigned char c );
+extern void uartPutc(unsigned char c);
 
 /* Try to find our control registers; ATMEL likes to rename these */
 
 #if defined UBRR
-#   define  ODDBG_UBRR  UBRR
+#define ODDBG_UBRR UBRR
 #elif defined UBRRL
-#   define  ODDBG_UBRR  UBRRL
+#define ODDBG_UBRR UBRRL
 #elif defined UBRR0
-#   define  ODDBG_UBRR  UBRR0
+#define ODDBG_UBRR UBRR0
 #elif defined UBRR0L
-#   define  ODDBG_UBRR  UBRR0L
+#define ODDBG_UBRR UBRR0L
 #endif
 
 #if defined UCR
-#   define  ODDBG_UCR   UCR
+#define ODDBG_UCR UCR
 #elif defined UCSRB
-#   define  ODDBG_UCR   UCSRB
+#define ODDBG_UCR UCSRB
 #elif defined UCSR0B
-#   define  ODDBG_UCR   UCSR0B
+#define ODDBG_UCR UCSR0B
 #endif
 
 #if defined TXEN
-#   define  ODDBG_TXEN  TXEN
+#define ODDBG_TXEN TXEN
 #else
-#   define  ODDBG_TXEN  TXEN0
+#define ODDBG_TXEN TXEN0
 #endif
 
 #if defined USR
-#   define  ODDBG_USR   USR
+#define ODDBG_USR USR
 #elif defined UCSRA
-#   define  ODDBG_USR   UCSRA
+#define ODDBG_USR UCSRA
 #elif defined UCSR0A
-#   define  ODDBG_USR   UCSR0A
+#define ODDBG_USR UCSR0A
 #endif
 
 #if defined UDRE
-#   define  ODDBG_UDRE  UDRE
+#define ODDBG_UDRE UDRE
 #else
-#   define  ODDBG_UDRE  UDRE0
+#define ODDBG_UDRE UDRE0
 #endif
 
 #if defined UDR
-#   define  ODDBG_UDR   UDR
+#define ODDBG_UDR UDR
 #elif defined UDR0
-#   define  ODDBG_UDR   UDR0
+#define ODDBG_UDR UDR0
 #endif
-
 
 //-------------------------------------------------------
 // Start of rprintf library
 //-------------------------------------------------------
 
-
 // needed for use of PSTR below
 #include <avr/pgmspace.h>
 
 // configuration
-// defining RPRINTF_SIMPLE will compile a smaller, simpler, and faster printf() function
-// defining RPRINTF_COMPLEX will compile a larger, more capable, and slower printf() function
+// defining RPRINTF_SIMPLE will compile a smaller, simpler, and faster printf()
+// function defining RPRINTF_COMPLEX will compile a larger, more capable, and
+// slower printf() function
 #ifndef RPRINTF_COMPLEX
-    #define RPRINTF_SIMPLE
+#define RPRINTF_SIMPLE
 #endif
 
-// Define RPRINTF_FLOAT to enable the floating-point printf function: rprintfFloat()
-// (adds +4600bytes or 2.2Kwords of code)
+// Define RPRINTF_FLOAT to enable the floating-point printf function:
+// rprintfFloat() (adds +4600bytes or 2.2Kwords of code)
 
 // defines/constants
-#define STRING_IN_RAM   0
-#define STRING_IN_ROM   1
+#define STRING_IN_RAM 0
+#define STRING_IN_ROM 1
 
 // make a putchar for those that are used to using it
-//#define putchar(c)    rprintfChar(c);
+// #define putchar(c)    rprintfChar(c);
 
 // functions
 
@@ -193,7 +193,7 @@ void rprintfProgStr(const char str[]);
 /// \code
 /// rprintfProgStrM("Hello, this string is stored in program rom");
 /// \endcode
-#define rprintfProgStrM(string)         (rprintfProgStr(PSTR(string)))
+#define rprintfProgStrM(string) (rprintfProgStr(PSTR(string)))
 
 //! Prints a carriage-return and line-feed.
 /// Useful when printing to serial ports/terminals.
@@ -201,10 +201,14 @@ void rprintfCRLF(void);
 
 // Prints the number contained in "data" in hex format
 // u04,u08,u16,and u32 functions handle 4,8,16,or 32 bits respectively
-void rprintfu04(unsigned char data);    ///< Print 4-bit hex number. Outputs a single hex character.
-void rprintfu08(unsigned char data);    ///< Print 8-bit hex number. Outputs two hex characters.
-void rprintfu16(unsigned short data);   ///< Print 16-bit hex number. Outputs four hex characters.
-void rprintfu32(unsigned long data);    ///< Print 32-bit hex number. Outputs eight hex characters.
+void rprintfu04(unsigned char data);  ///< Print 4-bit hex number. Outputs a
+                                      ///< single hex character.
+void rprintfu08(unsigned char data);  ///< Print 8-bit hex number. Outputs two
+                                      ///< hex characters.
+void rprintfu16(unsigned short data); ///< Print 16-bit hex number. Outputs four
+                                      ///< hex characters.
+void rprintfu32(unsigned long data); ///< Print 32-bit hex number. Outputs eight
+                                     ///< hex characters.
 
 //! A flexible integer-number printing routine.
 /// Print the number "n" in the given "base", using exactly "numDigits".
@@ -220,20 +224,23 @@ void rprintfu32(unsigned long data);    ///< Print 32-bit hex number. Outputs ei
 void rprintfNum(char base, char numDigits, char isSigned, char padchar, long n);
 
 #ifdef RPRINTF_FLOAT
-    //! floating-point print routine
-    void rprintfFloat(char numDigits, double x);
+//! floating-point print routine
+void rprintfFloat(char numDigits, double x);
 #endif
 
 // NOTE: Below you'll see the function prototypes of rprintf1RamRom and
 // rprintf2RamRom.  rprintf1RamRom and rprintf2RamRom are both reduced versions
 // of the regular C printf() command.  However, they are modified to be able
-// to read their text/format strings from RAM or ROM in the Atmel microprocessors.
-// Unless you really intend to, do not use the "RamRom" versions of the functions
-// directly.  Instead use the #defined function versions:
+// to read their text/format strings from RAM or ROM in the Atmel
+// microprocessors. Unless you really intend to, do not use the "RamRom"
+// versions of the functions directly.  Instead use the #defined function
+// versions:
 //
-// printfx("text/format",args)    ...to keep your text/format string stored in RAM
+// printfx("text/format",args)    ...to keep your text/format string stored in
+// RAM
 //      - or -
-// printfxROM("text/format",args) ...to keep your text/format string stored in ROM
+// printfxROM("text/format",args) ...to keep your text/format string stored in
+// ROM
 //
 // where x is either 1 or 2 for the simple or more powerful version of printf()
 //
@@ -252,52 +259,57 @@ void rprintfNum(char base, char numDigits, char isSigned, char padchar, long n);
 /// RPRINTF_COMPLEX in global.h.
 
 #ifdef RPRINTF_SIMPLE
-    //! A simple printf routine.
-    /// Called by rprintf() - does a simple printf (supports %d, %x, %c).
-    /// Supports:
-    /// - %d - decimal
-    /// - %x - hex
-    /// - %c - character
-    int rprintf1RamRom(unsigned char stringInRom, const char *format, ...);
-    // #defines for RAM or ROM operation
-    #define rprintf1(format, args...)       rprintf1RamRom(STRING_IN_ROM, PSTR(format), ## args)
-    #define rprintf1RAM(format, args...)    rprintf1RamRom(STRING_IN_RAM, format, ## args)
+//! A simple printf routine.
+/// Called by rprintf() - does a simple printf (supports %d, %x, %c).
+/// Supports:
+/// - %d - decimal
+/// - %x - hex
+/// - %c - character
+int rprintf1RamRom(unsigned char stringInRom, const char *format, ...);
+// #defines for RAM or ROM operation
+#define rprintf1(format, args...)                                              \
+  rprintf1RamRom(STRING_IN_ROM, PSTR(format), ##args)
+#define rprintf1RAM(format, args...)                                           \
+  rprintf1RamRom(STRING_IN_RAM, format, ##args)
 
-    // *** Default rprintf(...) ***
-    // this next line determines what the the basic rprintf() defaults to:
-    #if DEBUG_LEVEL > 0
-    #define rprintf(format, args...)        rprintf1RamRom(STRING_IN_ROM, PSTR(format), ## args)
-    #else
-    #define rprintf(format, args...)
-    #endif
-#endif  //#ifdef RPRINTF_SIMPLE
+// *** Default rprintf(...) ***
+// this next line determines what the the basic rprintf() defaults to:
+#if DEBUG_LEVEL > 0
+#define rprintf(format, args...)                                               \
+  rprintf1RamRom(STRING_IN_ROM, PSTR(format), ##args)
+#else
+#define rprintf(format, args...)
+#endif
+#endif // #ifdef RPRINTF_SIMPLE
 
 #ifdef RPRINTF_COMPLEX
-    //! A more powerful printf routine.
-    /// Called by rprintf() - does a more powerful printf (supports %d, %u, %o, %x, %c, %s).
-    /// Supports:
-    /// - %d - decimal
-    /// - %u - unsigned decimal
-    /// - %o - octal
-    /// - %x - hex
-    /// - %c - character
-    /// - %s - strings
-    /// - and the width,precision,padding modifiers
-    /// \note This printf does not support floating point numbers.
-    int rprintf2RamRom(unsigned char stringInRom, const char *sfmt, ...);
-    // #defines for RAM or ROM operation
-    #define rprintf2(format, args...)       rprintf2RamRom(STRING_IN_ROM, format, ## args)
-    #define rprintf2RAM(format, args...)    rprintf2RamRom(STRING_IN_RAM, format, ## args)
+//! A more powerful printf routine.
+/// Called by rprintf() - does a more powerful printf (supports %d, %u, %o, %x,
+/// %c, %s). Supports:
+/// - %d - decimal
+/// - %u - unsigned decimal
+/// - %o - octal
+/// - %x - hex
+/// - %c - character
+/// - %s - strings
+/// - and the width,precision,padding modifiers
+/// \note This printf does not support floating point numbers.
+int rprintf2RamRom(unsigned char stringInRom, const char *sfmt, ...);
+// #defines for RAM or ROM operation
+#define rprintf2(format, args...) rprintf2RamRom(STRING_IN_ROM, format, ##args)
+#define rprintf2RAM(format, args...)                                           \
+  rprintf2RamRom(STRING_IN_RAM, format, ##args)
 
-    // *** Default rprintf(...) ***
-    // this next line determines what the the basic rprintf() defaults to:
-    #define rprintf(format, args...)        rprintf2RamRom(STRING_IN_ROM, PSTR(format), ## args)
-#endif      //#ifdef RPRINTF_COMPLEX
+// *** Default rprintf(...) ***
+// this next line determines what the the basic rprintf() defaults to:
+#define rprintf(format, args...)                                               \
+  rprintf2RamRom(STRING_IN_ROM, PSTR(format), ##args)
+#endif // #ifdef RPRINTF_COMPLEX
 
-#else       //#if DEBUG_LEVEL > 0
-#   define odDebugInit()
-#   define rprintf(...)
+#else // #if DEBUG_LEVEL > 0
+#define odDebugInit()
+#define rprintf(...)
 #endif
 
-#endif      //#ifndef RPRINTF_H
+#endif // #ifndef RPRINTF_H
 //@}
