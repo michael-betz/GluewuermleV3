@@ -408,8 +408,8 @@ uint16_t readADC(uint8_t mux, uint8_t n) {
 	CBI(PRR, PRADC); // Power UP
 
 	// Prescaler = 128
-	ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) |
-			 (1 << ADPS0);
+	ADCSRA =
+		(1 << ADEN) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
 
 	// Internal 1.1 V reference
 	ADMUX = (1 << REFS1) | (1 << REFS0) | (mux & 0x0F);
@@ -467,9 +467,9 @@ ISR(PCINT0_vect) {
 
 	if (IBI(status, TX_DS)) {
 		// TX finished interrupt
-							  // temp = nRfRead_register( OBSERVE_TX ) & 0x0F;
-							  // rprintf("TX_DS: %d retries\n", temp);
-							  //      Data Sent TX FIFO interrupt. Asserted when
+		// temp = nRfRead_register( OBSERVE_TX ) & 0x0F;
+		// rprintf("TX_DS: %d retries\n", temp);
+		//      Data Sent TX FIFO interrupt. Asserted when
 		//      packet transmitted on TX. If AUTO_ACK is acti-
 		//      vated, this bit is set high only when ACK is
 		//      received.
