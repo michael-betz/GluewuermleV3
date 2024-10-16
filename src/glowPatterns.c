@@ -37,14 +37,15 @@ void houseKeepingWhileGlowing() {
 		//   Update the firefly activity by setting fireflySleepieness
 		//  -----------------------------------------------------------
 		//  fireflyCoffeeLevel = 0 (not active at all) ... 200 (very active)
-		temp_32 = ((int32_t)(vCap - MINIMUM_VOLTAGE)) *
-				  g_maximumCoffeeLevel; // temp2 = 0 ...
-										// (MAXIMUM_VOLTAGE-MINIMUM_VOLTAGE)
-										// * MAXIMUM_COFFEE_LEVEL
-		temp_32 /= (MAXIMUM_VOLTAGE -
-					MINIMUM_VOLTAGE); // temp2 = 0 .. MAXIMUM_COFFEE_LEVEL
-		temp_32 -=
-			ticksSinceBlinking / 50; // 1 hour = 450 ticks = 9 penalty points
+		// 0 ... (MAXIMUM_VOLTAGE-MINIMUM_VOLTAGE) * MAXIMUM_COFFEE_LEVEL
+		temp_32 = ((int32_t)(vCap - MINIMUM_VOLTAGE)) * g_maximumCoffeeLevel;
+
+		// 0 .. MAXIMUM_COFFEE_LEVEL
+		temp_32 /= (MAXIMUM_VOLTAGE - MINIMUM_VOLTAGE);
+
+		// Get more sleepy with time. 1 hour = 450 ticks = 9 penalty points.
+		temp_32 -= ticksSinceBlinking / 50;
+
 		if (temp_32 > g_maximumCoffeeLevel) {
 			temp_32 = g_maximumCoffeeLevel;
 		}
@@ -98,14 +99,18 @@ oneBug_t *startSeqGlueh(uint8_t bugId) {
 	oneWaveform_t tmpWave;
 	int16_t enCost;
 	int8_t propBonus = bug->availableEnergy / 512;
+
 	if (propBonus < 0)
 		propBonus = 0;
+
 	if (propBonus > 4)
 		propBonus = 4;
-	uint8_t patternID =
-		lfsr(8 - propBonus); // nRand = 0-31,   if 3 is the prop bonus!
-	if (patternID <
-		N_WAVEFORMS) { // Start a new pattern (with number nRand) on nRand = 0-5
+
+	// nRand = 0-31,   if 3 is the prop bonus!
+	uint8_t patternID = lfsr(8 - propBonus);
+
+	// Start a new pattern (with number nRand) on nRand = 0-5
+	if (patternID < N_WAVEFORMS) {
 		//  Our first job is to find a pattern which does not use too much
 		//  energy
 		memcpy_P(&tmpWave, &waveformTable[patternID], sizeof(oneWaveform_t));
@@ -115,10 +120,11 @@ oneBug_t *startSeqGlueh(uint8_t bugId) {
 		enCost = tmpWave.energyCost;
 		rprintf("bug[%2d]: ACTIVE, en = %d, cost = %d,  pBonus = %d\n", bugId,
 				bug->availableEnergy, enCost, propBonus);
-		//      When a wave gets started, energy gets shifted around!
-		//      if bug[0] was blinking with en:  bug[0]-=en, bug[1]+=en/2,
-		//      bug[3]-=en/4, bug[4]-=en/8, etc. overall energy billiance is
-		//      reduced by en
+
+		// When a wave gets started, energy gets shifted around!
+		// if bug[0] was blinking with en:  bug[0]-=en, bug[1]+=en/2,
+		// bug[3]-=en/4, bug[4]-=en/8, etc. overall energy billiance is
+		// reduced by en
 		bug->availableEnergy -= enCost;
 		enCost /= 2;
 		bug++;
@@ -134,8 +140,8 @@ oneBug_t *startSeqGlueh(uint8_t bugId) {
 		}
 	} else { // Let the bug sleep for nRand samples otherwise
 		bug->b_state = BUG_INACTIVE_PENALTY;
-		bug->remainingSamples =
-			lfsr(11); // up to 1 min waiting time until next try
+		// up to 1 min waiting time until next try
+		bug->remainingSamples = lfsr(11);
 		// rprintf( "bug[%2d]: PENALTY for %d samples, pBonus = %d\n", bugId,
 		// bug->remainingSamples, propBonus );
 	}
@@ -167,8 +173,8 @@ void newFrameGlueh() {
 			}
 			break;
 		case BUG_INACTIVE_PENALTY:
-			if (bug->remainingSamples >
-				0) { // A bug on standby still has some remaining samples
+			// A bug on standby still has some remaining samples
+			if (bug->remainingSamples > 0) {
 				bug->remainingSamples--;
 			} else {
 				bug->b_state = BUG_INACTIVE_RESCHEDULE;
@@ -176,15 +182,17 @@ void newFrameGlueh() {
 			break;
 		case BUG_INACTIVE_RESCHEDULE:
 			if (bug->availableEnergy > 0) {
-				startSeqGlueh(nled); // Starts a new sequence (with a rather
-									 // small propability)
+				// Starts a new sequence (with a rather small probability)
+				startSeqGlueh(nled);
 			}
 		}
 		bug++;
 	}
-	if (ledsAreOn) { // Switch off pwm timer in this cycle to save energy
+	if (ledsAreOn) {
+		// Switch off pwm timer in this cycle to save energy
 		pwmTimerOn();
-	} else { // At least one LED is active, activate pwmTimer if neccessarry
+	} else {
+		// At least one LED is active, activate pwmTimer if necessary
 		pwmTimerOff();
 	}
 }
@@ -215,14 +223,17 @@ void newFrameFullscreen(int8_t newState) {
 				}
 				pwmValue_p++;
 			}
-			if (temp) {		   // Now all lights are completely faded out
-				pwmTimerOff(); // We will only wake up on the next mutate() call
+			if (temp) {
+				// Now all lights are completely faded out
+				// We will only wake up on the next mutate() call
+				pwmTimerOff();
 			}
 			break;
 		case GLIMMER: // All leds kind of on, on low brightness
-			curPWMvalues[lfsr(8) % NLEDS] +=
-				1; // Every frame a random LED is made a bit brighter
-			if (tempFrameCounter++ > 3) { // Every 3 frames a LED is turned OFF
+			// Every frame a random LED is made a bit brighter
+			curPWMvalues[lfsr(8) % NLEDS] += 1;
+			if (tempFrameCounter++ > 3) {
+				// Every 3 frames a LED is turned OFF
 				tempFrameCounter = 0;
 				curPWMvalues[lfsr(8) % NLEDS] = 0;
 			}
@@ -233,7 +244,8 @@ void newFrameFullscreen(int8_t newState) {
 		case STARS:
 			for (pwmValue_p = curPWMvalues; pwmValue_p <= MAX_ADR_curPWMvalues;
 				 pwmValue_p++) {
-				if (lfsr(8) > 250) { // Make every fifth LED super bright
+				if (lfsr(8) > 250) {
+					// Make every fifth LED super bright
 					*pwmValue_p = MAX_PWM_VALUE;
 				} else {
 					*pwmValue_p = 0;
@@ -275,7 +287,7 @@ void newFrameFullscreen(int8_t newState) {
 				*pwmValue_p++ = lfsr(5);
 				*pwmValue_p++ = lfsr(4);
 				*pwmValue_p++ = lfsr(3);			// 3
-				for (nled = 0; nled < 17; nled++) { // 17    //Sum = 32 values
+				for (nled = 0; nled < 17; nled++) { // 17, Sum = 32 values
 					*pwmValue_p++ = lfsr(2);
 				}
 				framesInThisMode++;
@@ -300,19 +312,20 @@ void newFrameFullscreen(int8_t newState) {
 				tempFrameCounter = 0;
 				temp2 = *curPWMvalues; // Save lowest element
 				for (temp = 0; temp < MAX_ELEMENTS - 1; temp++) {
-					curPWMvalues[temp] =
-						curPWMvalues[temp +
-									 1]; // Move all elements one step down
+					// Move all elements one step down
+					curPWMvalues[temp] = curPWMvalues[temp + 1];
 				}
-				curPWMvalues[MAX_ELEMENTS - 1] =
-					temp2; // Put first element on top
+
+				// Put first element on top
+				curPWMvalues[MAX_ELEMENTS - 1] = temp2;
 			}
 			if (framesInThisMode >= (60 * 30)) {
 				currentFSFlashMode = BLACK;
 			}
 			break;
 		case COLOR_FADE:
-			if (tempFrameCounter & 0x01) { // Fade out on all odd numbers
+			// Fade out on all odd numbers
+			if (tempFrameCounter & 0x01) {
 				temp = 1;
 				pwmValue_p = curPWMvalues;
 				for (nled = 0; nled < MAX_ELEMENTS; nled++) {
@@ -325,10 +338,13 @@ void newFrameFullscreen(int8_t newState) {
 					}
 					pwmValue_p++;
 				}
-				if (temp) { // Now all lights are completely faded out
+
+				if (temp) {
+					// Now all lights are completely faded out
 					tempFrameCounter++; // Switch to an even number
 				}
-			} else {						 // Fade up one color
+			} else {
+				// Fade up one color
 				nled = tempFrameCounter / 2; // Index from 0 to 5
 				if (nled > 5) {
 					nled = 0;
@@ -359,9 +375,10 @@ void newFrameFullscreen(int8_t newState) {
 			 pwmValue_p++) {
 			setPwmValue(temp++, *pwmValue_p);
 		}
-	} else { // Switch glowing mode!
-		if (!IBI(flags,
-				 FLAG_PWM_IS_ON)) { // Only change mode when all LEDs are OFF
+	} else {
+		// Switch glowing mode!
+		if (!IBI(flags, FLAG_PWM_IS_ON)) {
+			// Only change mode when all LEDs are OFF
 			tempFrameCounter = 0;
 			framesInThisMode = 0;
 			if (newState > COLOR_FADE) {

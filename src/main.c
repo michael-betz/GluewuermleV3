@@ -106,8 +106,8 @@ void init(void) {
 	ACSR = (1 << ACD); // Switch off Analog comparator
 	ADCSRA = 0;		   // Switch off ADC for now
 	ADCSRB = 0;
-	DIDR0 =
-		0b00111111; // Switch off all digitial port functions on PORTC0 - PORTC5
+	// Switch off all digitial port functions on PORTC0 - PORTC5
+	DIDR0 = 0b00111111;
 	//-----------------------------------------------------------------------
 	// Timer1, HiSpeed PWM, Compare Match = Overflow ISR used for LED output
 	//-----------------------------------------------------------------------
@@ -164,16 +164,19 @@ int main() {
 	currentState = STATE_GLOW_GLUEH;
 	WDT_FAST_MODE();
 
-	while (1) { // We woke up. Figure out what to do (Wake-up sources: T0
-				// compare match, WDT overflow)
-		if (IBI(flags,
-				FLAG_wakeWDT)) { // This is called every PWM_CYCLES_PER_FRAME
-			onWDT(); // Update the PWM values, switch OFF T0 to save energy if
-					 // finished to glow (Then we have less wake up interrupts
-					 // and can do deep power down)
+	while (1) {
+		// We woke up. Figure out what to do (Wake-up sources: T0
+		// compare match, WDT overflow)
+		if (IBI(flags, FLAG_wakeWDT)) {
+			// This is called every PWM_CYCLES_PER_FRAME
+			// Update the PWM values, switch OFF T0 to save energy if
+			// finished to glow (Then we have less wake up interrupts
+			// and can do deep power down)
+			onWDT();
 			CBI(flags, FLAG_wakeWDT); // Clear flag
 		}
-		if (IBI(flags, FLAG_nRF_RX_DR)) { // Read payload from RF module
+		// Read payload from RF module
+		if (IBI(flags, FLAG_nRF_RX_DR)) {
 			onRX();
 			CBI(flags, FLAG_nRF_RX_DR);
 		}
@@ -203,9 +206,8 @@ static void sendState() {
 	}
 	sendBuffer[10] = energySum & 0x00FF;
 	sendBuffer[11] = (energySum & 0xFF00) >> 8;
-	nRfSendBytes(
-		sendBuffer, sizeof(sendBuffer),
-		0); // After sending something we could receive an ACK with payload!
+	// After sending something we could receive an ACK with payload!
+	nRfSendBytes(sendBuffer, sizeof(sendBuffer), 0);
 }
 
 // We have received something from the RF module (An Acc payload!)
@@ -282,12 +284,12 @@ void houseKeeping() {
 //  "Power-down" mode (Main oscillator is off during sleep)
 //--------------------------------------------------
 void onWDT() {
-	static uint16_t wdtWakeupCounter =
-		0x0000; // Used to do something only every n wakeups
+	// Used to do something only every n wakeups
+	static uint16_t wdtWakeupCounter = 0x0000;
 	uint8_t temp;
 
-	if (currentState ==
-		STATE_LOW_BATT) { // Special case, we exit as fast as possible
+	if (currentState == STATE_LOW_BATT) {
+		// Special case, we exit as fast as possible
 		if (wdtWakeupCounter > WDT_N_WK_ADC_LBATT) {
 			//--------------------------------------------------------------------
 			// Everything below is executed every n min. if juice is low
@@ -357,7 +359,8 @@ void onWDT() {
 	case STATE_GLOW_MANUAL_CONTROL:
 		newFrameFullscreen(-1);
 	case STATE_GLOW_MANUAL_CONTROL_SLOW:
-		if (wdtWakeupCounter == 0) { // every 8 s if glowing
+		if (wdtWakeupCounter == 0) {
+			// every 8 s if glowing
 			if (wdtCountSinceManual++ > MANUAL_CONTROL_TIMEOUT) {
 				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Manual "
 						"control)\n");
@@ -369,7 +372,8 @@ void onWDT() {
 			}
 		}
 		break;
-	case STATE_CHARGING: // Triggered every 8 s
+	case STATE_CHARGING:
+		// Triggered every 8 s
 		if (vSolar < CHARGING_THRESHOLD) {
 			currentState = STATE_GLOW_GLUEH;
 			pwmTimerOn();
@@ -377,8 +381,8 @@ void onWDT() {
 		}
 		break;
 	case STATE_HIGH_BATT: // Triggered every 8 s
-		if (vCap <= HBATT_THRESHOLD -
-						50) { // Check if Battery has discharged to a save value
+		// Check if Battery has discharged to a save value
+		if (vCap <= HBATT_THRESHOLD - 50) {
 			rprintf("currentState = STATE_GLOW_GLUEH  (Battery back to normal "
 					"voltage!)\n");
 			for (temp = 0; temp < NLEDS; temp++) {
@@ -389,7 +393,8 @@ void onWDT() {
 			WDT_FAST_MODE();
 		}
 		break;
-	case STATE_LOW_BATT: // Has been handeled as special case above already
+	case STATE_LOW_BATT:
+		// Has been handeled as special case above already
 		;
 	}
 	wdtWakeupCounter++;
@@ -401,22 +406,28 @@ uint16_t readADC(uint8_t mux, uint8_t n) {
 	uint16_t result = 0;
 	uint8_t i, sleepSave;
 	CBI(PRR, PRADC); // Power UP
+
+	// Prescaler = 128
 	ADCSRA = (1 << ADEN) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) |
-			 (1 << ADPS0);								// Prescaler = 128
-	ADMUX = (1 << REFS1) | (1 << REFS0) | (mux & 0x0F); // Internal 1.1 V
-														// reference
-	// CBI( TIMSK0, OCIE0A );                                    //Switch off
-	// timer interrupt which could cause preliminary wakeup
-	sleepSave = SMCR & 0x0F;		   // Backup sleep mode register
-	if (!IBI(flags, FLAG_PWM_IS_ON)) { // Dont change sleep mode if T1 is
-									   // running (we would deactivate it)
+			 (1 << ADPS0);
+
+	// Internal 1.1 V reference
+	ADMUX = (1 << REFS1) | (1 << REFS0) | (mux & 0x0F);
+
+	// Switch off timer interrupt which could cause preliminary wakeup
+	// CBI( TIMSK0, OCIE0A );
+
+	// Backup sleep mode register
+	sleepSave = SMCR & 0x0F;
+
+	if (!IBI(flags, FLAG_PWM_IS_ON)) {
+		// Dont change sleep mode if T1 is running (we would deactivate it)
 		SLEEP_SET_ADC();
 	}
 	for (i = 0; i < n; i++) {
 		SLEEP();
-		while (
-			IBI(ADCSRA,
-				ADSC)) { // ADC still running, preliminary wakeup, sleep again
+		while (IBI(ADCSRA, ADSC)) {
+			// ADC still running, preliminary wakeup, sleep again
 			SLEEP();
 		}
 		result += ADC;
@@ -424,8 +435,9 @@ uint16_t readADC(uint8_t mux, uint8_t n) {
 	SMCR = sleepSave;  // Restore sleep mode register
 	CBI(ADCSRA, ADEN); // disable ADC
 	SBI(PRR, PRADC);   // Power DOWN
-	//  SBI( TIMSK0, OCIE0A );                                      //Switch
-	//  timer interrupt back on
+
+	// Switch timer interrupt back on
+	//  SBI( TIMSK0, OCIE0A );
 	return result;
 }
 
@@ -445,13 +457,16 @@ ISR(ADC_vect) {}
 ISR(PCINT0_vect) {
 	uint8_t status;
 	// uint8_t temp, dataPipe;
-	if (IBI(PINB, nRF_PIN_IRQ)) { // If the pin is high this was a low to high
-								  // transition which we must Ignore
+	if (IBI(PINB, nRF_PIN_IRQ)) {
+		// If the pin is high this was a low to high transition. Ignore
 		return;
 	}
-	status = nRfGet_status(); // Otherwise the nRF24 module really triggered an
-							  // interrupt
-	if (IBI(status, TX_DS)) { // TX finished interrupt
+
+	// Otherwise the nRF24 module really triggered an interrupt
+	status = nRfGet_status();
+
+	if (IBI(status, TX_DS)) {
+		// TX finished interrupt
 							  // temp = nRfRead_register( OBSERVE_TX ) & 0x0F;
 							  // rprintf("TX_DS: %d retries\n", temp);
 							  //      Data Sent TX FIFO interrupt. Asserted when
@@ -460,7 +475,8 @@ ISR(PCINT0_vect) {
 		//      received.
 		//      Write 1 to clear bit.
 	}
-	if (IBI(status, RX_DR)) { // RX data received
+	if (IBI(status, RX_DR)) {
+		// RX data received
 		rprintf("RX_DR\n");
 		//      dataPipe = ( status & 0b00001110 ) >> 1;
 		//      The RX_DR IRQ is asserted by a new packet arrival event. The
@@ -470,7 +486,8 @@ ISR(PCINT0_vect) {
 		//      more data in RX FIFO, repeat from step 1)
 		SBI(flags, FLAG_nRF_RX_DR); // Let main handle the job!
 	}
-	if (IBI(status, MAX_RT)) { // Maximum number of TX retries reached
+	if (IBI(status, MAX_RT)) {
+		// Maximum number of TX retries reached
 		rprintf("MAX_RT\n");
 		//      Maximum number of TX retransmits interrupt
 		//      Write 1 to clear bit. If MAX_RT is asserted it must
@@ -481,7 +498,7 @@ ISR(PCINT0_vect) {
 		nRfFlush_tx();
 		// }
 	}
-	nRfWrite_register(STATUS, (1 << TX_DS) | (1 << RX_DR) |
-								  (1 << MAX_RT)); // Clear all interrupt flags
+	// Clear all interrupt flags
+	nRfWrite_register(STATUS, (1 << TX_DS) | (1 << RX_DR) | (1 << MAX_RT));
 	NRF_PWR_DOWN();
 }
