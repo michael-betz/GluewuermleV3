@@ -327,6 +327,20 @@ void onWDT() {
 	//--------------------------------------------------------------------
 	// Everything below is specific to a certain state
 	//--------------------------------------------------------------------
+	case STATE_GLOW_PERLIN:
+		newFramePerlin(-1);
+		if (wdtWakeupCounter == 0) { // Triggered every 32 s if glowing
+			temp = lfsr(8);
+			if (temp < 10) { // Get out of Perlin mode
+				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Perlin)\n");
+				currentState = STATE_GLOW_GLUEH;
+				for (temp = 0; temp < NLEDS; temp++) {
+					setPwmValue(temp, 0);
+				}
+			}
+			houseKeepingWhileGlowing();
+		}
+		break;
 	case STATE_GLOW_FULLSCREEN:
 		newFrameFullscreen(-1);
 		if (wdtWakeupCounter == 0) { // Triggered every 32 s if glowing
@@ -346,12 +360,19 @@ void onWDT() {
 	case STATE_GLOW_GLUEH: // Triggered every 0.03 s
 		newFrameGlueh();
 		if (wdtWakeupCounter == 0) { // every 8 s if glowing
-			if ((lfsr(8) <= 0) && (vCap > 3900)) {
-				currentState = STATE_GLOW_FULLSCREEN;
-				pwmTimerOff();
-				newFrameFullscreen(0); // Switch to BLACK mode
-				rprintf(
-					"currentState = STATE_GLOW_FULLSCREEN  (Enough Glueh)\n");
+			if (vCap > 3900) {
+				temp = lfsr(9);
+				if (temp == 0) {
+					currentState = STATE_GLOW_FULLSCREEN;
+					pwmTimerOff();
+					newFrameFullscreen(0); // Switch to BLACK mode
+					rprintf("currentState = STATE_GLOW_FULLSCREEN  (Enough Glueh)\n");
+				} else if (temp == 1 || temp == 2) {
+					currentState = STATE_GLOW_PERLIN;
+					pwmTimerOff();
+					newFramePerlin(0); // Initialize Perlin noise mode
+					rprintf("currentState = STATE_GLOW_PERLIN  (Enough Glueh)\n");
+				}
 			}
 			houseKeepingWhileGlowing();
 		}

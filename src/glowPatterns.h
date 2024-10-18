@@ -15,9 +15,13 @@
 // Defines
 //--------------------------------------------------
 extern int16_t g_maximumCoffeeLevel; // In energy points / 8 s
-#define MAXIMUM_VOLTAGE                                                        \
-	(HBATT_THRESHOLD - 50)	   // Will output MAXIMUM_COFFEE_LEVEL
-#define MINIMUM_VOLTAGE (3500) // Will output coffeeLevel = 0
+
+// MAXIMUM_VOLTAGE will output MAXIMUM_COFFEE_LEVEL
+#define MAXIMUM_VOLTAGE (HBATT_THRESHOLD - 50)
+
+// MINIMUM_VOLTAGE will output coffeeLevel = 0
+#define MINIMUM_VOLTAGE (3500)
+
 #define MAX_ELEMENTS 35
 #define MAX_ADR_curPWMvalues &curPWMvalues[NLEDS - 1]
 
@@ -29,6 +33,7 @@ typedef enum {
 	BUG_INACTIVE_RESCHEDULE,
 	BUG_ACTIVE_SAMPLES
 } bugState_t;
+
 typedef enum {
 	BLACK = 0,
 	GLIMMER,
@@ -38,15 +43,20 @@ typedef enum {
 	RAND_ROTATE,
 	COLOR_FADE
 } fullScreenFlashMode_t;
+
 typedef struct {
 	bugState_t b_state;
-	const uint16_t
-		*samplePointer; // Pointing to next valid sample if remainingSamples >0
-	uint16_t remainingSamples; // How long is the sequence (counted down)
-	uint8_t sampleDelay;	   // additional delay between samples (in 1/30 s,
-							   // 0=30fps, 1=15fps, etc)
-	int16_t availableEnergy; // Energy of the firefly. The higher, the brighter
-							 // a pattern it can play
+	// Pointing to next valid sample if remainingSamples >0
+	const uint16_t *samplePointer;
+
+	// How long is the sequence (counted down)
+	uint16_t remainingSamples;
+
+	// additional delay between samples (in 1/30 s, 0=30fps, 1=15fps, etc)
+	uint8_t sampleDelay;
+
+	// Energy of the firefly. The higher, the brighter a pattern it can play
+	int16_t availableEnergy;
 } oneBug_t;
 
 //--------------------------------------------------
@@ -62,6 +72,7 @@ extern oneBug_t bugs[NLEDS]; // Every bug controls one LED channel
 //--------------------------------------------------
 void newFrameGlueh();					  // Call with 30 fps
 void newFrameFullscreen(int8_t newState); // Call with 30 fps
+void newFramePerlin(int8_t newState);	  // Call with 30 fps
 void houseKeepingWhileGlowing();		  // Call every 8 s!
 
 // read word from FLASH with postincrement addresspointer

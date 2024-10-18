@@ -11,15 +11,20 @@
 //--------------------------------------------------
 // Global defines for ASM and C
 //--------------------------------------------------
-#define NBITS (13) // Do Pulse code modulation with N bits resolution
-#define MAX_PWM_VALUE                                                          \
-	((1 << NBITS) - 1) // Do Pulse code modulation with N bits resolution
-#define TCCR1B_VALUE                                                           \
-	0b00001001 // For timing pwm periods, CTC mode, CLK = Tsys /  1
+// Do Pulse code modulation with N bits resolution
+#define NBITS (13)
+
+// Do Pulse code modulation with N bits resolution
+#define MAX_PWM_VALUE ((1 << NBITS) - 1)
+
+// For timing pwm periods, CTC mode, CLK = Tsys /  1
+#define TCCR1B_VALUE 0b00001001
 
 #ifdef __ASSEMBLER__
 
-#define FLAG_wakeWDT 1 // Tell main to render a new PWM frame
+// Tell main to render a new PWM frame
+#define FLAG_wakeWDT 1
+
 //-------------------------------------------
 // Register definitions
 //-------------------------------------------

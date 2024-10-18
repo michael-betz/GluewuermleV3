@@ -13,13 +13,15 @@
 #include "myWaves.h"
 #include "pulseCode.h"
 #include "rprintf.h"
+#include "perlin.h"
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
 #include <inttypes.h>
+#include <stdlib.h>
 #include <util/delay.h>
 
-int16_t g_maximumCoffeeLevel = 150;
+int16_t g_maximumCoffeeLevel = 300;
 
 oneBug_t bugs[NLEDS]; // Every bug controls one LED channel
 #define LAST_BUG_ADR (&bugs[NLEDS - 1])
@@ -195,6 +197,28 @@ void newFrameGlueh() {
 		// At least one LED is active, activate pwmTimer if necessary
 		pwmTimerOff();
 	}
+}
+
+// This triggered with about 30 Hz but called by main
+// If newState < 0: just put a new frame
+// If ne<wState >= 0: (Re-)initialize Perlin noise
+void newFramePerlin(int8_t newState) {
+	static int seeds[MAX_ELEMENTS];
+	static uint16_t t = 0;
+
+	if (newState >= 0) {
+		for (uint8_t nled = 0; nled < MAX_ELEMENTS; nled++)
+			seeds[nled] = random();
+	}
+
+	for (uint8_t nled = 0; nled < MAX_ELEMENTS; nled++) {
+		int tmp = noise1d(t, 3, seeds[nled]) * MAX_PWM_VALUE;
+		if (tmp < 0)
+			tmp = 0;
+		curPWMvalues[nled] = tmp;
+	}
+
+	t++;
 }
 
 // This triggered with about 30 Hz but called by main
