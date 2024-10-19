@@ -21,6 +21,8 @@
 #include <util/delay.h>
 
 int16_t g_maximumCoffeeLevel = 300;
+// firefly activity scaled with voltage and time from 0 to g_maximumCoffeeLevel
+int16_t g_coffeeLevel = 300;
 
 oneBug_t bugs[NLEDS]; // Every bug controls one LED channel
 #define LAST_BUG_ADR (&bugs[NLEDS - 1])
@@ -28,45 +30,37 @@ uint16_t curPWMvalues[MAX_ELEMENTS];  // Cache only
 uint16_t ticksSinceBlinking = 0x0000; // in 8 s intervals
 fullScreenFlashMode_t currentFSFlashMode = RAMP_UP;
 
+
 void houseKeepingWhileGlowing() {
-	uint16_t coffeeLevel;
 	int32_t temp_32;
 
 	oneBug_t *bug;
-	if (currentState == STATE_GLOW_GLUEH) {
+	if (currentState == STATE_GLOW_GLUEH || currentState == STATE_GLOW_SIMPLEX) {
 		//  -----------------------------------------------------------
 		//   Update the firefly activity by setting fireflySleepieness
 		//  -----------------------------------------------------------
-		//  fireflyCoffeeLevel = 0 (not active at all) ... 200 (very active)
+		//  fireflyCoffeeLevel = 0 (not active at all) ... 300 (very active)
 		// 0 ... (MAXIMUM_VOLTAGE-MINIMUM_VOLTAGE) * MAXIMUM_COFFEE_LEVEL
 		temp_32 = ((int32_t)(vCap - MINIMUM_VOLTAGE)) * g_maximumCoffeeLevel;
 
 		// 0 .. MAXIMUM_COFFEE_LEVEL
 		temp_32 /= (MAXIMUM_VOLTAGE - MINIMUM_VOLTAGE);
 
-		// Get more sleepy with time. 1 hour = 450 ticks = 9 penalty points.
-		temp_32 -= ticksSinceBlinking / 50;
+		// Get more sleepy with time. 1 hour = 450 ticks = 28 penalty points.
+		temp_32 -= ticksSinceBlinking / 16;
 
-		if (temp_32 > g_maximumCoffeeLevel) {
+		if (temp_32 > g_maximumCoffeeLevel)
 			temp_32 = g_maximumCoffeeLevel;
-		}
-		if (temp_32 < 1) {
-			temp_32 = 1;
-		}
-		coffeeLevel = temp_32;
-#if DEBUG_LEVEL > 0
-		int32_t sum = 0;
-		rprintf("eng[");
-		for (uint8_t temp = 0; temp < NLEDS; temp++) {
-			rprintf(" %5d", bugs[temp].availableEnergy);
-			sum += bugs[temp].availableEnergy;
-		}
-		rprintf("] S=%5ld, cof=%3d\n", sum, coffeeLevel);
-#endif
+		if (temp_32 < 0)
+			temp_32 = 0;
+		g_coffeeLevel = temp_32;
+	}
+	if (currentState == STATE_GLOW_GLUEH) {
 		//  -----------------------------------------------------------
 		//   Fed the bugs with "fireflyCoffeeLevel" energy every 8 seconds
 		//   The value is spread out amongst all 12 channels
 		//  -----------------------------------------------------------
+		int16_t coffeeLevel = g_coffeeLevel;
 		bug = &bugs[lfsr(4) % NLEDS];
 		if (coffeeLevel <= 1) {
 			bug->availableEnergy += coffeeLevel;
@@ -80,6 +74,15 @@ void houseKeepingWhileGlowing() {
 				}
 			}
 		}
+#if DEBUG_LEVEL > 0
+		int32_t sum = 0;
+		rprintf("eng[");
+		for (uint8_t temp = 0; temp < NLEDS; temp++) {
+			rprintf(" %5d", bugs[temp].availableEnergy);
+			sum += bugs[temp].availableEnergy;
+		}
+		rprintf("] S=%5ld\n", sum);
+#endif
 	}
 
 	ticksSinceBlinking++;
@@ -212,20 +215,34 @@ void newFramePerlin(int8_t newState) {
 		return;
 	}
 
+	// g_coffeeLevel,	burn_threshold
+	//   0,				0x10000  // Off
+	// 100,				0x0e0c0  // Calm (1 - 2 at the same time)
+	// 200,				0x0c180
+	// 300,				0x0a240
+	// 400,				0x08300  // Very active  (6 - 7 at the same time)
+	// 500,				0x063c0
+	int32_t burn_threshold = 0x10000 - 0x50 * g_coffeeLevel;
+
 	rprintf("simplex [");
 	for (uint8_t led = 0; led < NLEDS; led++) {
 		// int tmp = smooth1d(t / 1024.0, 3, seeds[led]) * MAX_PWM_VALUE;
 		int32_t tmp = snoise_1D(((uint32_t)(t) << 3) + seeds[led]);
-		tmp -= 0xE000;
-		rprintf("%6ld ", tmp);
+		tmp -= burn_threshold;
 		if (tmp < 0)
 			tmp = 0;
+		tmp = (tmp * tmp) >> 16;
+		if (tmp > MAX_PWM_VALUE)
+			tmp = MAX_PWM_VALUE;
+		rprintf("%6ld ", tmp);
 		setPwmValue(led, tmp);
 	}
 	rprintf("]\n");
 
 	t++;
 }
+
+
 
 // This triggered with about 30 Hz but called by main
 // If newState < 0: just put a new frame

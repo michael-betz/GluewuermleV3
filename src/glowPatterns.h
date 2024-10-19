@@ -14,7 +14,9 @@
 //--------------------------------------------------
 // Defines
 //--------------------------------------------------
-extern int16_t g_maximumCoffeeLevel; // In energy points / 8 s
+extern int16_t g_maximumCoffeeLevel;
+extern int16_t g_coffeeLevel; // In energy points / 8 s [0 .. 500]
+
 
 // MAXIMUM_VOLTAGE will output MAXIMUM_COFFEE_LEVEL
 #define MAXIMUM_VOLTAGE (HBATT_THRESHOLD - 50)

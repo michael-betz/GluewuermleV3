@@ -158,10 +158,15 @@ int main() {
 	nRfHexdump();
 	pwmTimerOn();
 	sei();
+
 	rprintf(" LED - test ... ");
 	ledTest();
 	rprintf("OK\n");
-	currentState = STATE_GLOW_GLUEH;
+
+	// currentState = STATE_GLOW_SIMPLEX;
+	// houseKeeping();
+	// newFramePerlin(0);
+
 	WDT_FAST_MODE();
 
 	while (1) {
@@ -255,7 +260,7 @@ void houseKeeping() {
 	if (!IBI(flags, FLAG_PWM_IS_ON)) {
 		temperature = readADC(ADC_MUX_TEMP, 64); // max value: 65472
 	}
-	sendState();
+	// sendState();
 	if (vCap < LBATT_THRESHOLD) { // Go comatose!
 		rprintf("currentState = STATE_LOW_BATT  (Battery undervoltage!)  "
 				"zzZZzzZZ\n");
@@ -272,8 +277,19 @@ void houseKeeping() {
 			setPwmValue(temp, MAX_PWM_VALUE);
 		}
 	}
-	rprintf("houseKeeping()   Vs = %4d  Vc = %4d  Temp = %4d  State = %d\n",
-			vSolar, vCap, temperature, currentState);
+
+	switch (currentState) {
+	case STATE_GLOW_SIMPLEX:
+	case STATE_GLOW_FULLSCREEN:
+	case STATE_GLOW_GLUEH:
+		houseKeepingWhileGlowing();
+
+	default:
+		;
+	}
+
+	rprintf("houseKeeping()   Vs = %4d  Vc = %4d  T = %4d  S = %2x  C = %d\n",
+			vSolar, vCap, temperature, currentState, g_coffeeLevel);
 }
 
 //--------------------------------------------------
@@ -330,7 +346,7 @@ void onWDT() {
 	case STATE_GLOW_SIMPLEX:
 		newFramePerlin(-1);
 		if (wdtWakeupCounter == 0) { // Triggered every 32 s if glowing
-			temp = lfsr(8);
+			temp = lfsr(9);
 			if (temp < 10) { // Get out of Simplex mode
 				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Simplex)\n");
 				currentState = STATE_GLOW_GLUEH;
@@ -338,7 +354,6 @@ void onWDT() {
 					setPwmValue(temp, 0);
 				}
 			}
-			houseKeepingWhileGlowing();
 		}
 		break;
 	case STATE_GLOW_FULLSCREEN:
@@ -354,7 +369,6 @@ void onWDT() {
 					setPwmValue(temp, 0);
 				}
 			}
-			houseKeepingWhileGlowing();
 		}
 		break;
 	case STATE_GLOW_GLUEH: // Triggered every 0.03 s
@@ -373,7 +387,6 @@ void onWDT() {
 					rprintf("currentState = STATE_GLOW_SIMPLEX  (Enough Glueh)\n");
 				}
 			}
-			houseKeepingWhileGlowing();
 		}
 		break;
 	case STATE_GLOW_MANUAL_CONTROL:
