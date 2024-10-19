@@ -13,12 +13,11 @@
 #include "myWaves.h"
 #include "pulseCode.h"
 #include "rprintf.h"
-#include "perlin.h"
+#include "simplex.h"
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
 #include <inttypes.h>
-#include <stdlib.h>
 #include <util/delay.h>
 
 int16_t g_maximumCoffeeLevel = 300;
@@ -201,22 +200,29 @@ void newFrameGlueh() {
 
 // This triggered with about 30 Hz but called by main
 // If newState < 0: just put a new frame
-// If ne<wState >= 0: (Re-)initialize Perlin noise
+// If ne<wState >= 0: (Re-)initialize in noise
 void newFramePerlin(int8_t newState) {
-	static int seeds[MAX_ELEMENTS];
+	static uint32_t seeds[NLEDS];
 	static uint16_t t = 0;
 
 	if (newState >= 0) {
-		for (uint8_t nled = 0; nled < MAX_ELEMENTS; nled++)
-			seeds[nled] = random();
+		for (uint8_t led = 0; led < NLEDS; led++)
+			seeds[led] = (uint32_t)(lfsr(16)) << 16 | lfsr(16);
+		pwmTimerOn();
+		return;
 	}
 
-	for (uint8_t nled = 0; nled < MAX_ELEMENTS; nled++) {
-		int tmp = noise1d(t, 3, seeds[nled]) * MAX_PWM_VALUE;
+	rprintf("simplex [");
+	for (uint8_t led = 0; led < NLEDS; led++) {
+		// int tmp = smooth1d(t / 1024.0, 3, seeds[led]) * MAX_PWM_VALUE;
+		int32_t tmp = snoise_1D(((uint32_t)(t) << 3) + seeds[led]);
+		tmp -= 0xE000;
+		rprintf("%6ld ", tmp);
 		if (tmp < 0)
 			tmp = 0;
-		curPWMvalues[nled] = tmp;
+		setPwmValue(led, tmp);
 	}
+	rprintf("]\n");
 
 	t++;
 }

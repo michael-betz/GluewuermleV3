@@ -136,7 +136,7 @@ void init(void) {
 }
 
 void ledTest() {
-	for (uint8_t iter = 0; iter <= 5; iter++) {
+	for (uint8_t iter = 0; iter <= 3; iter++) {
 		for (uint8_t nled = 0; nled < NLEDS; nled++) {
 			setPwmValue(nled, 0xFF);
 			_delay_ms(100);
@@ -327,12 +327,12 @@ void onWDT() {
 	//--------------------------------------------------------------------
 	// Everything below is specific to a certain state
 	//--------------------------------------------------------------------
-	case STATE_GLOW_PERLIN:
+	case STATE_GLOW_SIMPLEX:
 		newFramePerlin(-1);
 		if (wdtWakeupCounter == 0) { // Triggered every 32 s if glowing
 			temp = lfsr(8);
-			if (temp < 10) { // Get out of Perlin mode
-				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Perlin)\n");
+			if (temp < 10) { // Get out of Simplex mode
+				rprintf("currentState = STATE_GLOW_GLUEH  (Enough Simplex)\n");
 				currentState = STATE_GLOW_GLUEH;
 				for (temp = 0; temp < NLEDS; temp++) {
 					setPwmValue(temp, 0);
@@ -368,10 +368,9 @@ void onWDT() {
 					newFrameFullscreen(0); // Switch to BLACK mode
 					rprintf("currentState = STATE_GLOW_FULLSCREEN  (Enough Glueh)\n");
 				} else if (temp == 1 || temp == 2) {
-					currentState = STATE_GLOW_PERLIN;
-					pwmTimerOff();
-					newFramePerlin(0); // Initialize Perlin noise mode
-					rprintf("currentState = STATE_GLOW_PERLIN  (Enough Glueh)\n");
+					currentState = STATE_GLOW_SIMPLEX;
+					newFramePerlin(0); // Initialize Simplex noise mode
+					rprintf("currentState = STATE_GLOW_SIMPLEX  (Enough Glueh)\n");
 				}
 			}
 			houseKeepingWhileGlowing();
