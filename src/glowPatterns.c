@@ -248,8 +248,16 @@ void newFramePerlin(int8_t newState) {
 // If newState < 0: just put a new frame
 // If newState > 0: change flash mode to newState
 void newFrameFullscreen(int8_t newState) {
-	// Channel indexes (4 bit each) for Yellow, Orange, Red, White, Green, Blue
-	uint16_t colorMatching[] = {0xFFBA, 0xFFF0, 0xFF21, 0xFFF9, 0xFF63, 0xFF87};
+	// Channel indexes (4 bit each) for Blue
+	uint16_t colorMatching[] = {
+		0xFFF0,  // blue
+		0xFF41,  // orange
+		0xFF82,  // red
+		0xFF53,  // green
+		0xFF96,  // white
+		0xFFA7   // UV
+	};
+	#define N_COLORS (sizeof(colorMatching) / sizeof(colorMatching[0]))
 	uint8_t temp, nled;
 	uint16_t *pwmValue_p, temp2;
 	static uint16_t framesInThisMode = 0;
@@ -393,7 +401,7 @@ void newFrameFullscreen(int8_t newState) {
 			} else {
 				// Fade up one color
 				nled = tempFrameCounter / 2; // Index from 0 to 5
-				if (nled > 5) {
+				if (nled >= N_COLORS) {
 					nled = 0;
 					tempFrameCounter = 0;
 				}

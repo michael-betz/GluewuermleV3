@@ -136,10 +136,10 @@ void init(void) {
 }
 
 void ledTest() {
-	for (uint8_t iter = 0; iter <= 3; iter++) {
+	for (uint8_t iter = 0; iter <= 5; iter++) {
 		for (uint8_t nled = 0; nled < NLEDS; nled++) {
 			setPwmValue(nled, 0xFF);
-			_delay_ms(100);
+			_delay_ms(1000);
 		}
 		_delay_ms(3000);
 		for (uint8_t nled = 0; nled < NLEDS; nled++) {
