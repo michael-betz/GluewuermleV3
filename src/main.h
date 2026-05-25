@@ -14,7 +14,7 @@
 // PWM LEDs
 #define NLEDS 12 // How many PWM channels to handle
 // ADC, voltage measurement
-#define VCAPDIVH 549.0 //[kOhm]
+#define VCAPDIVH 560.0 //[kOhm]
 #define VCAPDIVL 160.0 //[kOhm]
 
 // to get [10*mV] from the ADC value

@@ -222,7 +222,7 @@ void newFramePerlin(int8_t newState) {
 	// 300,				0x0a240
 	// 400,				0x08300  // Very active  (6 - 7 at the same time)
 	// 500,				0x063c0
-	int32_t burn_threshold = 0x10000 - 0x50 * g_coffeeLevel;
+	int32_t burn_threshold = 0x18000 - 0x50 * g_coffeeLevel;
 
 	rprintf("simplex [");
 	for (uint8_t led = 0; led < NLEDS; led++) {
